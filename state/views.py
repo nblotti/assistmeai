@@ -6,17 +6,10 @@ from rest_framework import status
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import JSONParser
 
-from state.statemachine.ClientLoader import ClientLoader
+
 from state.statemachine.CommandControl import CommandControl
 
 
-@api_view(['POST'])
-@parser_classes([JSONParser])
-def get_query(request):
-    clientLoader = ClientLoader()
-    data = clientLoader.do_contact_command(request.data["messages"])
-
-    return HttpResponse(json.dumps(data), content_type="application/json", status=status.HTTP_200_OK)
 @api_view(['POST'])
 @parser_classes([JSONParser])
 def get_command(request):
@@ -48,6 +41,8 @@ def get_command(request):
         control.do_load_webex_command()
     elif control.current_state == CommandControl.speech_to_text_state:
         control.do_speach_to_text_command()
+    elif control.current_state == CommandControl.load_stock_quotes_state:
+        control.do_load_stock_quotes_command()
     elif control.current_state == CommandControl.clear_state:
         control.do_clear()
 

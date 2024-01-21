@@ -10,7 +10,6 @@ router = routers.DefaultRouter()
 urlpatterns = [
     path('', include(router.urls)),
     path('command/', views.get_command),
-    path('client/', views.get_query),
 
 ]
 
