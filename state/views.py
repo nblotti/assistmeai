@@ -39,6 +39,8 @@ def get_command(request):
         control.do_query()
     elif control.current_state == CommandControl.load_webex_state:
         control.do_load_webex_command()
+    elif control.current_state == CommandControl.load_product_state:
+        control.do_product()
     elif control.current_state == CommandControl.speech_to_text_state:
         control.do_speach_to_text_command()
     elif control.current_state == CommandControl.load_stock_quotes_state:

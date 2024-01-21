@@ -1,10 +1,8 @@
 import json
-import time
 from datetime import datetime, date
 from enum import Enum
 
-import numpy
-from jsonpath_ng import jsonpath, parse
+from jsonpath_ng import parse
 
 import requests
 from openai import OpenAI
@@ -12,7 +10,8 @@ from statemachine import StateMachine, State
 
 from assistme.models import Transcript
 from djangoProject.config import model_get_ai_state, model_do_client, model_do_memo, \
-    model_do_query, model_do_speach_to_text, model_do_load_stock_quotes, WEBEX_API_KEY, words_not_in_model
+    model_do_query, model_do_speach_to_text, model_do_load_stock_quotes, WEBEX_API_KEY, words_not_in_model, \
+    common_model, model_do_product, solr_server, assistme_server
 from financialdata.eod.eod_data_repository import EodDataRepository
 
 
@@ -24,18 +23,20 @@ class PROCESS_TYPE(Enum):
     QUERY = 'query'
     CLEAR = 'clear'
     LOAD_STOCK_QUOTE_DATA = 'load_stock_quotes_state'
+    LOAD_PRODUCT = 'products'
 
 
 class CommandControl(StateMachine):
     # class variable
-    repository_api_url = "http://clientrepositories.nblotti.org/clients/"
-    solr_client_api_url = "http://solr.nblotti.org/clients/select?indent=true&q.op=AND&q=type:client"
-    solr_memos_api_url = "http://solr.nblotti.org/clients/select?indent=true&q.op=OR&q="
+
+    solr_client_api_url = solr_server + "select?indent=true&q.op=AND&q=type:client"
+    solr_memos_api_url = solr_server + "select?indent=true&q.op=OR&q="
     webex_api_url = "https://webexapis.com/v1/recordings"
     webex_api_detail_url = "https://webexapis.com/v1/recordings/{0}"
-    document_api_url = "https://assistmeai.nblotti.org/api/requesttexttospeach/"
-    # document_api_url = "http://localhost:8000/api/requesttexttospeach/"
+    document_api_url = assistme_server + "/api/requesttexttospeach/"
 
+
+    product_api_url = solr_server + "select?indent=true&select&q.op=OR&q=sous-jacents:{0}"
 
     eodDataRepository = EodDataRepository()
 
@@ -48,6 +49,7 @@ class CommandControl(StateMachine):
     load_webex_state = State()
     speech_to_text_state = State()
     load_stock_quotes_state = State()
+    load_product_state = State()
     query_state = State()
     done_state = State(final=True)
     error_state = State(final=True)
@@ -63,6 +65,7 @@ class CommandControl(StateMachine):
             | check_command_state.to(load_webex_state, cond="is_load_webex_process")
             | check_command_state.to(speech_to_text_state, cond="is_speech_to_text_process")
             | check_command_state.to(load_stock_quotes_state, cond="is_load_stock_quotes_process")
+            | check_command_state.to(load_product_state, cond="is_load_product_process")
             | check_command_state.to(query_state, cond="is_query_process")
 
     )
@@ -73,6 +76,11 @@ class CommandControl(StateMachine):
     do_client = (
             client_state.to(done_state, cond="do_client_command")
             | client_state.to(error_state, cond="in_error")
+    )
+
+    do_product = (
+            load_product_state.to(done_state, cond="do_product_command")
+            | load_product_state.to(error_state, cond="in_error")
     )
 
     do_memo = (
@@ -94,7 +102,6 @@ class CommandControl(StateMachine):
             load_stock_quotes_state.to(done_state, cond="do_load_stock_quotes_command")
             | load_stock_quotes_state.to(error_state, cond="in_error")
     )
-
 
     do_clear = clear_state.to(done_state)
 
@@ -131,6 +138,8 @@ class CommandControl(StateMachine):
                 self.type = PROCESS_TYPE.LOAD_WEBEX
             if "data" in query_str:
                 self.type = PROCESS_TYPE.LOAD_STOCK_QUOTE_DATA
+            if "product" in query_str or "products" in query_str:
+                self.type = PROCESS_TYPE.LOAD_PRODUCT
         elif "text to speech" in query_str or "tts" in query_str:
             self.type = PROCESS_TYPE.SPEECH_TO_TEXT
         elif "summary" in query_str:
@@ -138,9 +147,8 @@ class CommandControl(StateMachine):
         elif "clear" in query_str:
             self.type = PROCESS_TYPE.CLEAR
 
-
         if not self.type:
-            if not self.get_ai_state(current_messages[len(current_messages)-1]):
+            if not self.get_ai_state(current_messages[len(current_messages) - 1]):
                 return False
         try:
             for message in current_messages:
@@ -163,8 +171,7 @@ class CommandControl(StateMachine):
             "role": "system",
             "name": "assistant",
             "content": "You are helpfull assistant who will be presented with a message and your job is to provide a "
-                       "JSON object"
-                       "with two attributes : state and reason"
+                       "JSON object with two attributes : state and reason"
         },
             {
                 "role": "system",
@@ -224,7 +231,6 @@ class CommandControl(StateMachine):
             current_message
 
         ]
-
 
         completion = self.client.chat.completions.create(
             model=model_get_ai_state,
@@ -297,6 +303,11 @@ class CommandControl(StateMachine):
             return True
         return False
 
+    def is_load_product_process(self):
+        if self.type == PROCESS_TYPE.LOAD_PRODUCT:
+            return True
+        return False
+
     def do_client_command(self):
 
         messages = [{
@@ -320,11 +331,11 @@ class CommandControl(StateMachine):
                 "content": "Based on the classified parameters, build the query in the form 'parameter:value' "
                            "separated by ' AND '. Don't create parameters not existing in the parameter list."
                            "A parameter cannot appear more than once in the query"
-                          "Don't consider the word in the following list :" + words_not_in_model +"to build the query "
-                                                                                                  "or the filter"
-                           "Never use a value without the parameter name"
-                           "For every value use only one word. Never take the verb"
-                           "The country parameter is an existing country name. Do not use *.*"
+                           "Don't consider the word in the following list :" + words_not_in_model + "to build the query "
+                                                                                                    "or the filter"
+                                                                                                    "Never use a value without the parameter name"
+                                                                                                    "For every value use only one word. Never take the verb"
+                                                                                                    "The country parameter is an existing country name. Do not use *.*"
 
             },
             {
@@ -385,10 +396,10 @@ class CommandControl(StateMachine):
             {
                 "role": "system",
                 "name": "assistant",
-                "content":              "Never use a value without the parameter name in the query"
-                                        "A value cannot be used for a parameter and a filter at the same time."
-                                        "Don't use two parameters for the same value. "
-                                        "A contact is a memo, not a client or a type of memo"
+                "content": "Never use a value without the parameter name in the query"
+                           "A value cannot be used for a parameter and a filter at the same time."
+                           "Don't use two parameters for the same value. "
+                           "A contact is a memo, not a client or a type of memo"
 
             },
             {
@@ -399,9 +410,9 @@ class CommandControl(StateMachine):
                            "alertDoubtful(boolean),alertRisk(boolean),alertPendingOrder(boolean),"
                            "alertOutstandingDocument(boolean),alertNonStandardScale(boolean)"
                            "Don't create parameters not existing in the parameter list."
-                           "Don't consider the word in the following list :" + words_not_in_model +"to build the "
-                                                                                                   "query or the filter"
-                           "The filter newer contains other parameter than memoContent"
+                           "Don't consider the word in the following list :" + words_not_in_model + "to build the "
+                                                                                                    "query or the filter"
+                                                                                                    "The filter newer contains other parameter than memoContent"
             },
             {
                 "role": "system",
@@ -422,7 +433,6 @@ class CommandControl(StateMachine):
                 "name": "assistant",
                 "content": "If a part of the question is related to the content or the meaning of the document,"
                            "don't classify it, but add it to the filter instead"
-
 
             },
             {
@@ -480,10 +490,7 @@ class CommandControl(StateMachine):
                 else:
                     api_url += api_filter
             elif self.ids and not self.ids.__eq__('None'):
-                api_url  += "&fq=clientId:(" + self.ids + ")"
-
-
-
+                api_url += "&fq=clientId:(" + self.ids + ")"
 
             result = dict(type=PROCESS_TYPE.LOAD_MEMO.value,
                           content=requests.get(api_url).json()["response"]["docs"])
@@ -500,7 +507,7 @@ class CommandControl(StateMachine):
         messages = [{
             "role": "system",
             "name": "assistant",
-            "content": "You are a helpful assistant to produce json"
+            "content": "You are a helpful assistant designed to produce json"
         },
             {
                 "role": "system",
@@ -540,6 +547,49 @@ class CommandControl(StateMachine):
 
     def on_enter_do_clear(self):
         self.data = []
+        return True
+
+    def do_product_command(self):
+
+        message = self.data[len(self.data) - 1]
+
+        messages = [
+            {"role": "system",
+             "name": "assistant",
+             "content": "You are a helpful assistant designed to extract underlyings from a query and build a JSON structure  in the form : \"{query:[{\"underlying\":\"value\"},{\"underlying\":\"value\"}], reason:reason]\""
+
+             }, {
+                "role": "system",
+                "name": "assistant",
+                "content": "Don't consider the words 'load product in the query"
+            }, {
+                "role": "system",
+                "name": "assistant",
+                "content": "Use reason to explain your choice"
+            },
+            message]
+
+        try:
+            completion = self.client.chat.completions.create(
+                model=model_do_product,
+                temperature=0.7,
+                messages=messages
+            )
+
+            result = json.loads(completion.choices[0].message.content)["query"]
+
+
+            underlying = [underlying["underlying"] for underlying in result]
+
+            api_url = self.product_api_url.format(",".join(underlying))
+
+            result = dict(type=PROCESS_TYPE.LOAD_PRODUCT.value,
+                          content=requests.get(api_url).json()["response"]["docs"])
+            self.data.append(dict(role="system", name="products", content=json.dumps(result)))
+        except Exception as e:
+            print(e)
+            self.in_error = True
+            return False
         return True
 
     def do_load_webex_command(self):
@@ -664,10 +714,10 @@ class CommandControl(StateMachine):
             {
                 "role": "system",
                 "name": "assistant",
-                "content": "If you don't find date, use [2000-01-01] for from_date and today as to_date. Use"+
+                "content": "If you don't find date, use [2000-01-01] for from_date and today as to_date. Use" +
                            str(date.today()) + " as today"
             },
-            self.data[len(self.data)-1]
+            self.data[len(self.data) - 1]
         ]
         try:
 
@@ -690,7 +740,7 @@ class CommandControl(StateMachine):
             from_date = datetime.strptime(data["from_date"], "%Y-%m-%d")
             to_date = datetime.strptime(data["to_date"], "%Y-%m-%d")
             mk_qd_data = self.eodDataRepository.get_eod_stock_data(data["ticker"], data["market"],
-                                                                       from_date, to_date)
+                                                                   from_date, to_date)
 
             result = dict(type=PROCESS_TYPE.LOAD_STOCK_QUOTE_DATA.value,
                           content=mk_qd_data)
@@ -715,4 +765,3 @@ class CommandControl(StateMachine):
 
         self.clearSystemMessages(self.data)
         return True
-
