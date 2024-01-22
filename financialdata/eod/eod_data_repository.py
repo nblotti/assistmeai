@@ -1,14 +1,9 @@
-import csv
-import io
-import json
-from datetime import datetime
 
 import numpy
-import numpy as np
 import pandas as pd
 import requests
 from djangoProject import config as cfg
-
+from djangoProject.config import eod_server
 
 
 class EodDataRepository:
@@ -16,8 +11,9 @@ class EodDataRepository:
 
     def __init__(self):
 
-        self.eod_quote_url = "https://eodhd.com/api/eod/{0}.{1}?api_token={2}&from={3}&to={4}&fmt=json"
-        self.eos_fundamentals_url = "https://eodhd.com/api/fundamentals/{0}.{1}?api_token={2}&fmt=json&filter=Highlights,Valuation,Technicals,Earnings::trend,AnalystRatings"
+        self.eod_quote_url = eod_server+"eod/{0}.{1}?api_token={2}&from={3}&to={4}&fmt=json"
+        self.eos_fundamentals_url = eod_server+("/fundamentals/{0}.{1}?api_token={2}&fmt=json&filter=Highlights,"
+                                                "Valuation,Technicals,Earnings::trend,AnalystRatings")
     def get_eod_stock_data(self, ticker, market, from_date, to_date):
 
         result =  requests.get(self.eod_quote_url.format(ticker, market, cfg.EOD_API_KEY,from_date,to_date)).json()

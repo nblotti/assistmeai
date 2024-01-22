@@ -1,21 +1,24 @@
 import json
+import time
 from datetime import datetime, date
 from enum import Enum
+
 
 from jsonpath_ng import parse
 
 import requests
 from openai import OpenAI
 from statemachine import StateMachine, State
+import logging
 
 from assistme.models import Transcript
 from djangoProject.config import model_get_ai_state, model_do_client, model_do_memo, \
     model_do_query, model_do_speach_to_text, model_do_load_stock_quotes, WEBEX_API_KEY, words_not_in_model, \
-    common_model, model_do_product, solr_server, assistme_server
+    model_do_product, solr_server, assistme_server, ai_request_timeout
 from financialdata.eod.eod_data_repository import EodDataRepository
 
 
-class PROCESS_TYPE(Enum):
+class ProcessType(Enum):
     LOAD_MEMO = 'load_memo'
     LOAD_CLIENT = 'load_client'
     LOAD_WEBEX = 'load_webex'
@@ -35,7 +38,6 @@ class CommandControl(StateMachine):
     webex_api_detail_url = "https://webexapis.com/v1/recordings/{0}"
     document_api_url = assistme_server + "/api/requesttexttospeach/"
 
-
     product_api_url = solr_server + "select?indent=true&select&q.op=OR&q=sous-jacents:{0}"
 
     eodDataRepository = EodDataRepository()
@@ -43,77 +45,42 @@ class CommandControl(StateMachine):
     # states and state maching configuration
     waiting_for_command = State(initial=True)
     check_command_state = State()
-    client_state = State()
-    memo_state = State()
-    clear_state = State(enter="on_enter_do_clear", )
-    load_webex_state = State()
-    speech_to_text_state = State()
-    load_stock_quotes_state = State()
-    load_product_state = State()
-    query_state = State()
+
+    clear_state = State()
     done_state = State(final=True)
-    error_state = State(final=True)
 
-    do_check_command = (
-            waiting_for_command.to(check_command_state, cond="command_marshalling")
-            | waiting_for_command.to(error_state, cond="in_error")
-    )
-    do_start_process = (
-            check_command_state.to(client_state, cond="is_client_process")
-            | check_command_state.to(memo_state, cond="is_memo_process")
-            | check_command_state.to(clear_state, cond="is_clear_process")
-            | check_command_state.to(load_webex_state, cond="is_load_webex_process")
-            | check_command_state.to(speech_to_text_state, cond="is_speech_to_text_process")
-            | check_command_state.to(load_stock_quotes_state, cond="is_load_stock_quotes_process")
-            | check_command_state.to(load_product_state, cond="is_load_product_process")
-            | check_command_state.to(query_state, cond="is_query_process")
+    do_check_command = waiting_for_command.to(check_command_state, on="command_marshalling")
 
-    )
-    do_query = (
-            query_state.to(done_state, cond="do_query_command")
-            | query_state.to(error_state, cond="in_error")
-    )
-    do_client = (
-            client_state.to(done_state, cond="do_client_command")
-            | client_state.to(error_state, cond="in_error")
-    )
-
-    do_product = (
-            load_product_state.to(done_state, cond="do_product_command")
-            | load_product_state.to(error_state, cond="in_error")
-    )
-
-    do_memo = (
-            memo_state.to(done_state, cond="do_memo_command")
-            | memo_state.to(error_state, cond="in_error")
-    )
-
-    do_load_webex_state = (
-            load_webex_state.to(done_state, cond="do_load_webex_command")
-            | load_webex_state.to(error_state, cond="in_error")
-    )
-
-    do_text_to_speach_state = (
-            speech_to_text_state.to(done_state, cond="do_speach_to_text_command")
-            | speech_to_text_state.to(error_state, cond="in_error")
-    )
-
-    do_load_stock_quotes_state = (
-            load_stock_quotes_state.to(done_state, cond="do_load_stock_quotes_command")
-            | load_stock_quotes_state.to(error_state, cond="in_error")
-    )
-
-    do_clear = clear_state.to(done_state)
+    run_command = (check_command_state.to(done_state, unless="in_error", cond="is_client_process",
+                                          on="do_client_command", after="check_error") |
+                   check_command_state.to(done_state, unless="in_error", cond="is_memo_process",
+                                          on="do_memo_command", after="check_error") |
+                   check_command_state.to(done_state, unless="in_error", cond="is_load_webex_process",
+                                          on="do_load_webex_command", after="check_error") |
+                   check_command_state.to(done_state, unless="in_error", cond="is_speech_to_text_process",
+                                          on="do_speach_to_text_command", after="check_error") |
+                   check_command_state.to(done_state, unless="in_error", cond="is_load_stock_quotes_process",
+                                          on="do_load_stock_quotes_command", after="check_error") |
+                   check_command_state.to(done_state, unless="in_error", cond="is_load_product_process",
+                                          on="do_product_command", after="check_error") |
+                   check_command_state.to(done_state, unless="in_error", cond="is_query_process",
+                                          on="do_query_command", after="check_error") |
+                   check_command_state.to(clear_state, unless="in_error", cond="is_clear_process",
+                                          on="do_clear", after="check_error")
+                   )
 
     def __init__(self):
-
-        self.client = OpenAI(api_key=WEBEX_API_KEY)
+        self.logger = logging.getLogger(__name__)
+        self.client = OpenAI(api_key=WEBEX_API_KEY,  timeout=ai_request_timeout)
         self.jwt = 0
-        self.type = PROCESS_TYPE.QUERY
+        self.type = ProcessType.QUERY
         self.data = []
         self.wbx_jwt_token = ""
         self.in_error = False
-        super(CommandControl, self).__init__()
+        super().__init__()
+    def check_error(self):
+        if self.in_error:
+            self.data.append(dict(role="system", name="error_state", content=""))
 
     def clearSystemMessages(self, messages):
         messages[:] = [message for message in messages if
@@ -131,41 +98,48 @@ class CommandControl(StateMachine):
         self.type = None
         if "load" in query_str:
             if "memo" in query_str or "memos" in query_str:
-                self.type = PROCESS_TYPE.LOAD_MEMO
+                self.type = ProcessType.LOAD_MEMO
             elif "client" in query_str or "clients" in query_str:
-                self.type = PROCESS_TYPE.LOAD_CLIENT
+                self.type = ProcessType.LOAD_CLIENT
             elif "webex" in query_str or "recording" in query_str:
-                self.type = PROCESS_TYPE.LOAD_WEBEX
+                self.type = ProcessType.LOAD_WEBEX
             if "data" in query_str:
-                self.type = PROCESS_TYPE.LOAD_STOCK_QUOTE_DATA
+                self.type = ProcessType.LOAD_STOCK_QUOTE_DATA
             if "product" in query_str or "products" in query_str:
-                self.type = PROCESS_TYPE.LOAD_PRODUCT
+                self.type = ProcessType.LOAD_PRODUCT
         elif "text to speech" in query_str or "tts" in query_str:
-            self.type = PROCESS_TYPE.SPEECH_TO_TEXT
+            self.type = ProcessType.SPEECH_TO_TEXT
         elif "summary" in query_str:
-            self.type = PROCESS_TYPE.QUERY
+            self.type = ProcessType.QUERY
         elif "clear" in query_str:
-            self.type = PROCESS_TYPE.CLEAR
+            self.type = ProcessType.CLEAR
 
-        if not self.type:
-            if not self.get_ai_state(current_messages[len(current_messages) - 1]):
-                return False
         try:
+
+            if not self.type:
+                if not self.get_ai_state(current_messages[len(current_messages) - 1]):
+                    return False
+
             for message in current_messages:
-                if ((type == PROCESS_TYPE.LOAD_CLIENT and message["name"] == "clients") or
-                        (type == PROCESS_TYPE.LOAD_MEMO and message["name"] == "memos")):
+                if ((type == ProcessType.LOAD_CLIENT and message["name"] == "clients") or
+                        (type == ProcessType.LOAD_MEMO and message["name"] == "memos")):
                     current_messages.remove(message)
 
             self.data = current_messages
             self.get_ids(current_messages)
 
+
         except Exception as e:
-            print(e)
+            self.logger.critical("---------------------------------------------------------------------------")
+            self.logger.critical("Error command_marshalling {0}".format(e))
+            self.logger.critical("---------------------------------------------------------------------------")
             self.in_error = True
             return False
         return True
 
     def get_ai_state(self, current_message):
+
+        start = time.time()
 
         messages = [{
             "role": "system",
@@ -188,14 +162,18 @@ class CommandControl(StateMachine):
             {
                 "role": "system",
                 "name": "assistant",
-                "content": "State cannot be 'load_memo' or  'load_client' when the last user message does not contains the word 'load' "
+                "content": "State cannot be 'load_memo' or  'load_client' when the last user message does not "
+                           "contains the word 'load'"
 
             },
             {
                 "role": "system",
                 "name": "assistant",
-                "content": "When a the last user message contains the word load and a ticker or a firm's name, set state to 'load_stock_quotes_state'"
-                           "When a the last user message contains the word load and no ticker and no firm's name, set state to 'load_client'"
+                "content": "When a the last user message contains the word load and a known listed ticker or a firm's "
+                           "name, set state to 'load_stock_quotes_state'"
+                           "When a the last user message contains the word load and no known listed ticker and no "
+                           "firm's name, set state to 'load_client'"
+                #    "vhni is not a ticker"
 
             },
             {
@@ -242,11 +220,21 @@ class CommandControl(StateMachine):
 
         try:
             last_message = json.loads(completion.choices[0].message.content)
-            self.type = PROCESS_TYPE(last_message["state"])
-            print(last_message["reason"])
+            self.type = ProcessType(last_message["state"])
+
+
+            end = time.time()
+
+            self.logger.debug(last_message["reason"])
+            self.logger.debug("---------------------------------------------------------------------------")
+            self.logger.debug("Elapsed time for get_ai_state : {0}".format(end - start))
+            self.logger.debug("---------------------------------------------------------------------------")
+
 
         except Exception as e:
-            print(e)
+            self.logger.critical("---------------------------------------------------------------------------")
+            self.logger.critical("Error get_ai_state {0}".format(e))
+            self.logger.critical("---------------------------------------------------------------------------")
             self.in_error = True
             return False
         return True
@@ -269,46 +257,48 @@ class CommandControl(StateMachine):
         self.ids = " ".join(ids)
 
     def is_client_process(self):
-        if self.type == PROCESS_TYPE.LOAD_CLIENT:
+        if self.type == ProcessType.LOAD_CLIENT:
             return True
         return False
 
     def is_memo_process(self):
-        if self.type == PROCESS_TYPE.LOAD_MEMO:
+        if self.type == ProcessType.LOAD_MEMO:
             return True
         return False
 
     def is_clear_process(self):
-        if self.type == PROCESS_TYPE.CLEAR:
+        if self.type == ProcessType.CLEAR:
             return True
         return False
 
     def is_load_webex_process(self):
-        if self.type == PROCESS_TYPE.LOAD_WEBEX:
+        if self.type == ProcessType.LOAD_WEBEX:
             return True
         return False
 
     def is_query_process(self):
-        if self.type == PROCESS_TYPE.QUERY:
+        if self.type == ProcessType.QUERY:
             return True
         return False
 
     def is_speech_to_text_process(self):
-        if self.type == PROCESS_TYPE.SPEECH_TO_TEXT:
+        if self.type == ProcessType.SPEECH_TO_TEXT:
             return True
         return False
 
     def is_load_stock_quotes_process(self):
-        if self.type == PROCESS_TYPE.LOAD_STOCK_QUOTE_DATA:
+        if self.type == ProcessType.LOAD_STOCK_QUOTE_DATA:
             return True
         return False
 
     def is_load_product_process(self):
-        if self.type == PROCESS_TYPE.LOAD_PRODUCT:
+        if self.type == ProcessType.LOAD_PRODUCT:
             return True
         return False
 
     def do_client_command(self):
+
+        start = time.time()
 
         messages = [{
             "role": "system",
@@ -331,17 +321,18 @@ class CommandControl(StateMachine):
                 "content": "Based on the classified parameters, build the query in the form 'parameter:value' "
                            "separated by ' AND '. Don't create parameters not existing in the parameter list."
                            "A parameter cannot appear more than once in the query"
-                           "Don't consider the word in the following list :" + words_not_in_model + "to build the query "
+                           "Don't consider the word in the following list :" + words_not_in_model + "to build the query"
                                                                                                     "or the filter"
-                                                                                                    "Never use a value without the parameter name"
-                                                                                                    "For every value use only one word. Never take the verb"
-                                                                                                    "The country parameter is an existing country name. Do not use *.*"
+                           "Never use a value without the parameter name"
+                           "For every value use only one word. Never take the verb"
+                           "The country parameter is an existing country name. Do not use *.*"
 
             },
             {
                 "role": "system",
                 "name": "assistant",
-                "content": "Words starting with a capital letter are client's names. When query contain's a capital letter, use name parameter for names"
+                "content": "Words starting with a capital letter are client's names. When query contain's a "
+                           "capital letter, use name parameter for names"
             },
             {
                 "role": "system",
@@ -351,8 +342,9 @@ class CommandControl(StateMachine):
             {
                 "role": "system",
                 "name": "assistant",
-                "content": "For age related questions, use birthDate parameter and format [* TO YYYY-MM-ddT00:00:00Z ]. "
-                           "Replace only date variable not the NOW variable. Dont use relative variable. Do not apply range"
+                "content": "For age related questions, use birthDate parameter and format [* TO YYYY-MM-ddT00:00:00Z ]."
+                           "Replace only date variable not the NOW variable. "
+                           "Dont use relative variable. Do not apply range"
             }]
 
         self.data[0:0] = messages
@@ -371,19 +363,30 @@ class CommandControl(StateMachine):
                 api_url = "{0} AND {1}".format(self.solr_client_api_url, request_params)
             else:
                 api_url = self.solr_client_api_url
-            print(api_url)
-            result = dict(type=PROCESS_TYPE.LOAD_CLIENT.value, content=
+
+            self.logger.debug(api_url)
+            result = dict(type=ProcessType.LOAD_CLIENT.value, content=
             requests.get(api_url).json()["response"]["docs"])
             self.data.append(dict(role="system", name="clients", content=json.dumps(result)))
             self.clearSystemMessages(self.data)
+
+            end = time.time()
+
+            self.logger.debug("---------------------------------------------------------------------------")
+            self.logger.debug("Elapsed time for do_client_command : {0}".format(end - start))
+            self.logger.debug("---------------------------------------------------------------------------")
+
         except Exception as e:
-            print(e)
+            self.logger.critical("---------------------------------------------------------------------------")
+            self.logger.critical("Error do_memo_command {0}".format(e))
+            self.logger.critical("---------------------------------------------------------------------------")
             self.in_error = True
             return False
         return True
 
     def do_memo_command(self):
 
+        start = time.time()
         messages = [
             {
                 "role": "system",
@@ -411,8 +414,8 @@ class CommandControl(StateMachine):
                            "alertOutstandingDocument(boolean),alertNonStandardScale(boolean)"
                            "Don't create parameters not existing in the parameter list."
                            "Don't consider the word in the following list :" + words_not_in_model + "to build the "
-                                                                                                    "query or the filter"
-                                                                                                    "The filter newer contains other parameter than memoContent"
+                           "query or the filter"
+                           "The filter newer contains other parameter than memoContent"
             },
             {
                 "role": "system",
@@ -444,12 +447,14 @@ class CommandControl(StateMachine):
                 "role": "system",
                 "name": "assistant",
                 "content": "Start string parameters value in the query with /.* and finish with .*/. Add '_str' at "
-                           "the end of the parameter name. This rule does not apply for the memoContent parameter used in the filter"
+                           "the end of the parameter name. This rule does not apply for the memoContent parameter "
+                           "used in the filter"
             },
             {
                 "role": "system",
                 "name": "assistant",
-                "content": "Words starting with a capital letter are client's names. When query contain's a capital letter. Use name_str parameter for names not memoContent"
+                "content": "Words starting with a capital letter are client's names. When query contain's a capital "
+                           "letter. Use name_str parameter for names not memoContent"
             },
             {
                 "role": "system",
@@ -481,9 +486,10 @@ class CommandControl(StateMachine):
             api_filter = json.loads(completion.choices[0].message.content)["f"]
             reason = json.loads(completion.choices[0].message.content)["r"]
 
-            print(api_url)
-            print(api_filter)
-            print(reason)
+
+            self.logger.debug(api_url)
+            self.logger.debug(api_filter)
+            self.logger.debug(reason)
             if api_filter:
                 if self.ids and not self.ids.__eq__('None'):
                     api_url += api_filter + " and clientId:" + self.ids
@@ -492,18 +498,28 @@ class CommandControl(StateMachine):
             elif self.ids and not self.ids.__eq__('None'):
                 api_url += "&fq=clientId:(" + self.ids + ")"
 
-            result = dict(type=PROCESS_TYPE.LOAD_MEMO.value,
+            result = dict(type=ProcessType.LOAD_MEMO.value,
                           content=requests.get(api_url).json()["response"]["docs"])
             self.data.append(dict(role="system", name="memos", content=json.dumps(result)))
             self.clearSystemMessages(self.data)
+
+            end = time.time()
+
+            self.logger.debug("---------------------------------------------------------------------------")
+            self.logger.debug("Elapsed time for do_memo_command : {0}".format(end - start))
+            self.logger.debug("---------------------------------------------------------------------------")
+
         except Exception as e:
-            print(e)
+            self.logger.critical("---------------------------------------------------------------------------")
+            self.logger.critical("Error do_memo_command {0}".format(e))
+            self.logger.critical("---------------------------------------------------------------------------")
             self.in_error = True
             return False
         return True
 
     def do_query_command(self):
 
+        start = time.time()
         messages = [{
             "role": "system",
             "name": "assistant",
@@ -517,13 +533,15 @@ class CommandControl(StateMachine):
             {
                 "role": "system",
                 "name": "assistant",
-                "content": "Only use the last message in our conversation that has an attribute name containing value 'clients' to answer questions about clients"
+                "content": "Only use the last message in our conversation that has an attribute name containing value "
+                           "'clients' to answer questions about clients"
             }
             ,
             {
                 "role": "system",
                 "name": "assistant",
-                "content": "Only use the last message in our conversation that has an attribute name containing value 'memos' to answer questions about memos."
+                "content": "Only use the last message in our conversation that has an attribute name containing value "
+                           "'memos' to answer questions about memos."
             }
 
         ]
@@ -536,63 +554,87 @@ class CommandControl(StateMachine):
                 messages=self.data
             )
 
-            self.data.append(dict(role="assistant", name=PROCESS_TYPE.QUERY.value,
+            self.data.append(dict(role="assistant", name=ProcessType.QUERY.value,
                                   content=json.dumps(completion.choices[0].message.content)))
             self.clearSystemMessages(self.data)
+
+            end = time.time()
+
+            self.logger.debug("---------------------------------------------------------------------------")
+            self.logger.debug("Elapsed time for do_query_command : {0}".format(end - start))
+            self.logger.debug("---------------------------------------------------------------------------")
+
         except Exception as e:
-            print(e)
+            self.logger.critical("---------------------------------------------------------------------------")
+            self.logger.critical("Error do_query_command {0}".format(e))
+            self.logger.critical("---------------------------------------------------------------------------")
             self.in_error = True
             return False
         return True
 
-    def on_enter_do_clear(self):
+    def do_clear(self):
         self.data = []
         return True
 
     def do_product_command(self):
 
+        start = time.time()
         message = self.data[len(self.data) - 1]
 
         messages = [
             {"role": "system",
              "name": "assistant",
-             "content": "You are a helpful assistant designed to extract underlyings from a query and build a JSON structure  in the form : \"{query:[{\"underlying\":\"value\"},{\"underlying\":\"value\"}], reason:reason]\""
-
-             }, {
+             "content": "You are a helpful assistant designed to build a query and return it into JSON."
+                        "JSON returned should be in the form {result:query }"
+             },
+            {
+                "role": "system",
+                "name": "assistant",
+                "content": "Build the query in the form [\"{underlying\":\"value\", \"{underlying\":\"value\"}]"
+            },
+            {
                 "role": "system",
                 "name": "assistant",
                 "content": "Don't consider the words 'load product in the query"
-            }, {
-                "role": "system",
-                "name": "assistant",
-                "content": "Use reason to explain your choice"
             },
             message]
 
         try:
             completion = self.client.chat.completions.create(
                 model=model_do_product,
+                response_format={"type": "json_object"},
                 temperature=0.7,
                 messages=messages
             )
 
-            result = json.loads(completion.choices[0].message.content)["query"]
-
+            result = json.loads(completion.choices[0].message.content)["result"]
 
             underlying = [underlying["underlying"] for underlying in result]
 
             api_url = self.product_api_url.format(",".join(underlying))
 
-            result = dict(type=PROCESS_TYPE.LOAD_PRODUCT.value,
+            self.logger.debug(api_url)
+            result = dict(type=ProcessType.LOAD_PRODUCT.value,
                           content=requests.get(api_url).json()["response"]["docs"])
             self.data.append(dict(role="system", name="products", content=json.dumps(result)))
+
+            end = time.time()
+
+            self.logger.debug("---------------------------------------------------------------------------")
+            self.logger.debug("Elapsed time for do_product_command : {0}".format(end - start))
+            self.logger.debug("---------------------------------------------------------------------------")
+
         except Exception as e:
-            print(e)
+            self.logger.critical("---------------------------------------------------------------------------")
+            self.logger.critical("Error do_product_command {0}".format(e))
+            self.logger.critical("---------------------------------------------------------------------------")
             self.in_error = True
             return False
         return True
 
     def do_load_webex_command(self):
+
+        start = time.time()
 
         if self.wbx_jwt_token is None:
             command = json.dumps(dict(command="login_webex"))
@@ -617,15 +659,26 @@ class CommandControl(StateMachine):
                     "Authorization": "Bearer {0}".format(self.wbx_jwt_token)}).json()
                 details.append(detail)
 
-            result = dict(type=PROCESS_TYPE.LOAD_WEBEX.value, content=details)
+            result = dict(type=ProcessType.LOAD_WEBEX.value, content=details)
             self.data.append(dict(role="system", name="webex", content=json.dumps(result)))
+
+            end = time.time()
+
+            self.logger.debug("---------------------------------------------------------------------------")
+            self.logger.debug("Elapsed time for do_load_webex_command : {0}".format(end - start))
+            self.logger.debug("---------------------------------------------------------------------------")
+
         except Exception as e:
-            print(e)
+            self.logger.critical("---------------------------------------------------------------------------")
+            self.logger.critical("Error do_load_webex_command {0}".format(e))
+            self.logger.critical("---------------------------------------------------------------------------")
             self.in_error = True
             return False
         return True
 
     def do_speach_to_text_command(self):
+
+        start = time.time()
 
         last_message = {
             "role": "user",
@@ -635,7 +688,8 @@ class CommandControl(StateMachine):
         messages = [{
             "role": "system",
             "name": "assistant",
-            "content": "You are a helpful assistant designed to select appropriate message from the message with name webex and produce JSON"
+            "content": "You are a helpful assistant designed to select appropriate message from the message with name "
+                       "webex and produce JSON"
         }, {
             "role": "system",
             "name": "assistant",
@@ -657,44 +711,57 @@ class CommandControl(StateMachine):
             url = json.loads(completion.choices[0].message.content)["url"]
             document_id = json.loads(completion.choices[0].message.content)["id"]
             format = json.loads(completion.choices[0].message.content)["format"]
-
-            try:
-                obj = Transcript.objects.create_transcript(document_id, self.firebase_token)
-                obj.save()
-                myobj = {'url': url, 'id': obj.id, 'document_id': document_id, 'format': format}
-                response = requests.post(CommandControl.document_api_url,
-                                         headers={'FIREBASETOKEN': self.firebase_token}, json=myobj)
-
-            except Exception as e:
-                print(e)
-                self.in_error = True
-                return False
-
-            application_message = {
-                "role": "system",
-                "name": PROCESS_TYPE.SPEECH_TO_TEXT.value,
-                "content": str(obj.id)
-            }
-            self.data.append(application_message)
-            self.clearSystemMessages(self.data)
-
         except Exception as e:
-            print(e)
+            self.logger.critical("---------------------------------------------------------------------------")
+            self.logger.critical("Error do_speach_to_text_command - select message {0}".format(e))
+            self.logger.critical("---------------------------------------------------------------------------")
             self.in_error = True
             return False
+
+        try:
+            obj = Transcript.objects.create_transcript(document_id, self.firebase_token)
+            obj.save()
+            myobj = {'url': url, 'id': obj.id, 'document_id': document_id, 'format': format}
+            response = requests.post(CommandControl.document_api_url,
+                                     headers={'FIREBASETOKEN': self.firebase_token}, json=myobj)
+
+        except Exception as e:
+            self.logger.critical("---------------------------------------------------------------------------")
+            self.logger.critical("Error do_speach_to_text_command - starting conversiont process {0}".format(e))
+            self.logger.critical("---------------------------------------------------------------------------")
+            self.in_error = True
+            return False
+
+        application_message = {
+            "role": "system",
+            "name": ProcessType.SPEECH_TO_TEXT.value,
+            "content": str(obj.id)
+        }
+        self.data.append(application_message)
+        self.clearSystemMessages(self.data)
+        end = time.time()
+
+        self.logger.debug("---------------------------------------------------------------------------")
+        self.logger.debug("Elapsed time for do_speach_to_text_command : {0}".format(end - start))
+        self.logger.debug("---------------------------------------------------------------------------")
+
         return True
 
     def do_load_stock_quotes_command(self):
 
+        start = time.time()
+
         messages = [{
             "role": "system",
             "name": "assistant",
-            "content": "You are a helpful assistant designed to extract the stock ticker , the market where the stock is traded and the difference between date given and return them into JSON"
+            "content": "You are a helpful assistant designed to extract the stock ticker , the market where the stock "
+                       "is traded and the difference between date given and return them into JSON"
         },
             {
                 "role": "system",
                 "name": "assistant",
-                "content": "return a structure in the form {ticker: value, market: value, from_date: value, to_date: value, period:value, difference:value}"
+                "content": "return a structure in the form {ticker: value, market: value, from_date: value, "
+                           "to_date: value, period:value, difference:value}"
             },
             {
                 "role": "system",
@@ -704,7 +771,8 @@ class CommandControl(StateMachine):
             {
                 "role": "system",
                 "name": "assistant",
-                "content": "If the ticker contains a '.' split it : the part before the '.'' is the ticker value, the part after is th market value"
+                "content": "If the ticker contains a '.' split it : the part before the '.'' is the ticker value, "
+                           "the part after is th market value"
             },
             {
                 "role": "system",
@@ -729,8 +797,10 @@ class CommandControl(StateMachine):
             )
 
         except Exception as e:
-            print(e)
-            self.in_error = True
+            self.logger.critical("---------------------------------------------------------------------------")
+            self.logger.critical("Error do_load_stock_quotes_command - get underlyings {0}".format(e))
+            self.logger.critical("---------------------------------------------------------------------------")
+            in_error = True
             return False
 
         try:
@@ -742,26 +812,36 @@ class CommandControl(StateMachine):
             mk_qd_data = self.eodDataRepository.get_eod_stock_data(data["ticker"], data["market"],
                                                                    from_date, to_date)
 
-            result = dict(type=PROCESS_TYPE.LOAD_STOCK_QUOTE_DATA.value,
+            result = dict(type="load_stock_quotes_state",
                           content=mk_qd_data)
             self.data.append(dict(role="system", name="market_data", content=json.dumps(result)))
 
         except Exception as e:
-            print(e)
+            self.logger.critical("---------------------------------------------------------------------------")
+            self.logger.critical("Error do_load_stock_quotes_command - load_stock_quotes_state {0}".format(e))
+            self.logger.critical("---------------------------------------------------------------------------")
             self.in_error = True
             return False
 
         try:
 
             mk_fdata = self.eodDataRepository.get_eod_fundamental_data(data["ticker"], data["market"])
-            result = dict(type=PROCESS_TYPE.LOAD_STOCK_QUOTE_DATA.value,
+            result = dict(type="load_stock_fundamentals_state",
                           content=mk_fdata)
             self.data.append(dict(role="system", name="market_data", content=json.dumps(result)))
 
         except Exception as e:
-            print(e)
+            self.logger.critical("---------------------------------------------------------------------------")
+            self.logger.critical("Error do_load_stock_quotes_command - load_stock_fundamentals_state {0}".format(e))
+            self.logger.critical("---------------------------------------------------------------------------")
             self.in_error = True
             return False
 
         self.clearSystemMessages(self.data)
+        end = time.time()
+
+        self.logger.debug("---------------------------------------------------------------------------")
+        self.logger.debug("Elapsed time for do_load_stock_quotes_command : {0}".format(end - start))
+        self.logger.debug("---------------------------------------------------------------------------")
+
         return True

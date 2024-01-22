@@ -10,7 +10,9 @@ from urllib.request import urlretrieve
 from pathlib import Path
 from firebase_admin import messaging
 
-client = OpenAI(api_key="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")
+from djangoProject.config import OPEN_AI_KEY
+
+client = OpenAI(api_key=OPEN_AI_KEY)
 
 # downloaded_filepath = "/home/nblotti/test/"
 downloaded_filepath = "/app/transcripts/"
