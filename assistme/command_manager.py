@@ -3,7 +3,6 @@ import time
 from datetime import datetime, date
 from enum import Enum
 
-
 from jsonpath_ng import parse
 
 import requests
@@ -12,24 +11,13 @@ from statemachine import StateMachine, State
 import logging
 
 from assistme.models import Transcript
-from djangoProject.config import model_get_ai_state, model_do_client, model_do_memo, \
+from assistmeai.config import model_get_ai_state, model_do_client, model_do_memo, \
     model_do_query, model_do_speach_to_text, model_do_load_stock_quotes, WEBEX_API_KEY, words_not_in_model, \
     model_do_product, solr_server, assistme_server, ai_request_timeout
-from financialdata.eod.eod_data_repository import EodDataRepository
+from assistme.eod_repository import EodDataRepository
 
 
-class ProcessType(Enum):
-    LOAD_MEMO = 'load_memo'
-    LOAD_CLIENT = 'load_client'
-    LOAD_WEBEX = 'load_webex'
-    SPEECH_TO_TEXT = 'speech_to_text'
-    QUERY = 'query'
-    CLEAR = 'clear'
-    LOAD_STOCK_QUOTE_DATA = 'load_stock_quotes_state'
-    LOAD_PRODUCT = 'products'
-
-
-class CommandControl(StateMachine):
+class CommandManager(StateMachine):
     # class variable
 
     solr_client_api_url = solr_server + "select?indent=true&q.op=AND&q=type:client"
@@ -38,7 +26,7 @@ class CommandControl(StateMachine):
     webex_api_detail_url = "https://webexapis.com/v1/recordings/{0}"
     document_api_url = assistme_server + "/api/requesttexttospeach/"
 
-    product_api_url = solr_server + "select?indent=true&select&q.op=OR&q=sous-jacents:{0}"
+    product_api_url = solr_server + "select?indent=true&select&q.op=OR&q="
 
     eodDataRepository = EodDataRepository()
 
@@ -71,13 +59,14 @@ class CommandControl(StateMachine):
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)
-        self.client = OpenAI(api_key=WEBEX_API_KEY,  timeout=ai_request_timeout)
+        self.client = OpenAI(api_key=WEBEX_API_KEY, timeout=ai_request_timeout)
         self.jwt = 0
         self.type = ProcessType.QUERY
         self.data = []
         self.wbx_jwt_token = ""
         self.in_error = False
         super().__init__()
+
     def check_error(self):
         if self.in_error:
             self.data.append(dict(role="system", name="error_state", content=""))
@@ -222,7 +211,6 @@ class CommandControl(StateMachine):
             last_message = json.loads(completion.choices[0].message.content)
             self.type = ProcessType(last_message["state"])
 
-
             end = time.time()
 
             self.logger.debug(last_message["reason"])
@@ -323,9 +311,9 @@ class CommandControl(StateMachine):
                            "A parameter cannot appear more than once in the query"
                            "Don't consider the word in the following list :" + words_not_in_model + "to build the query"
                                                                                                     "or the filter"
-                           "Never use a value without the parameter name"
-                           "For every value use only one word. Never take the verb"
-                           "The country parameter is an existing country name. Do not use *.*"
+                                                                                                    "Never use a value without the parameter name"
+                                                                                                    "For every value use only one word. Never take the verb"
+                                                                                                    "The country parameter is an existing country name. Do not use *.*"
 
             },
             {
@@ -414,8 +402,8 @@ class CommandControl(StateMachine):
                            "alertOutstandingDocument(boolean),alertNonStandardScale(boolean)"
                            "Don't create parameters not existing in the parameter list."
                            "Don't consider the word in the following list :" + words_not_in_model + "to build the "
-                           "query or the filter"
-                           "The filter newer contains other parameter than memoContent"
+                                                                                                    "query or the filter"
+                                                                                                    "The filter newer contains other parameter than memoContent"
             },
             {
                 "role": "system",
@@ -485,7 +473,6 @@ class CommandControl(StateMachine):
             api_url = self.solr_memos_api_url + json.loads(completion.choices[0].message.content)["q"]
             api_filter = json.loads(completion.choices[0].message.content)["f"]
             reason = json.loads(completion.choices[0].message.content)["r"]
-
 
             self.logger.debug(api_url)
             self.logger.debug(api_filter)
@@ -590,12 +577,15 @@ class CommandControl(StateMachine):
             {
                 "role": "system",
                 "name": "assistant",
-                "content": "Build the query in the form [\"{underlying\":\"value\", \"{underlying\":\"value\"}]"
+                "content": 'Build the query as a valid JSON structure in the form '
+                           '[{"underlying":"value",{"underlying":"value"}], where value is the name of the underlying'
+                           'product is not the name of an underlying'
+                           'if no underlying is found, return an empy array'
             },
             {
                 "role": "system",
                 "name": "assistant",
-                "content": "Don't consider the words 'load product in the query"
+                "content": "Don't return 'load product' or 'load products' in the result"
             },
             message]
 
@@ -609,9 +599,11 @@ class CommandControl(StateMachine):
 
             result = json.loads(completion.choices[0].message.content)["result"]
 
-            underlying = [underlying["underlying"] for underlying in result]
-
-            api_url = self.product_api_url.format(",".join(underlying))
+            if not len(result) == 0:
+                underlying = [underlying["underlying"] for underlying in result]
+                api_url = "{0}sous-jacents:{1}".format(self.product_api_url, ",".join(underlying))
+            else:
+                api_url = "{0}{1}".format(self.product_api_url, "type:product")
 
             self.logger.debug(api_url)
             result = dict(type=ProcessType.LOAD_PRODUCT.value,
@@ -650,12 +642,12 @@ class CommandControl(StateMachine):
         parameters = {'from': '2020-01-01', 'to': datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}
 
         try:
-            result = requests.get(CommandControl.webex_api_url, params=parameters, headers={
+            result = requests.get(CommandManager.webex_api_url, params=parameters, headers={
                 "Authorization": "Bearer {0}".format(self.wbx_jwt_token)}).json()
 
             details = []
             for item in result["items"]:
-                detail = requests.get(CommandControl.webex_api_detail_url.format(item["id"]), headers={
+                detail = requests.get(CommandManager.webex_api_detail_url.format(item["id"]), headers={
                     "Authorization": "Bearer {0}".format(self.wbx_jwt_token)}).json()
                 details.append(detail)
 
@@ -722,7 +714,7 @@ class CommandControl(StateMachine):
             obj = Transcript.objects.create_transcript(document_id, self.firebase_token)
             obj.save()
             myobj = {'url': url, 'id': obj.id, 'document_id': document_id, 'format': format}
-            response = requests.post(CommandControl.document_api_url,
+            response = requests.post(CommandManager.document_api_url,
                                      headers={'FIREBASETOKEN': self.firebase_token}, json=myobj)
 
         except Exception as e:
@@ -845,3 +837,14 @@ class CommandControl(StateMachine):
         self.logger.debug("---------------------------------------------------------------------------")
 
         return True
+
+
+class ProcessType(Enum):
+    LOAD_MEMO = 'load_memo'
+    LOAD_CLIENT = 'load_client'
+    LOAD_WEBEX = 'load_webex'
+    SPEECH_TO_TEXT = 'speech_to_text'
+    QUERY = 'query'
+    CLEAR = 'clear'
+    LOAD_STOCK_QUOTE_DATA = 'load_stock_quotes_state'
+    LOAD_PRODUCT = 'products'

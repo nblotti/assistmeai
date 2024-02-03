@@ -15,9 +15,10 @@ urlpatterns = [
     path('', include(router.urls)),
 
     path('document/', views.document),
-    path('requesttexttospeach/', views.requesttexttospeach),
+    path('requesttexttospeach/', views.request_text_to_speach),
     path('webex/', views.webex_meetings),
     path('webex/<int:pk>/', views.webex_meeting_detail),
+    path('command/', views.do_command),
 ]
 
 

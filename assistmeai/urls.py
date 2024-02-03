@@ -1,5 +1,5 @@
 """
-URL configuration for djangoProject project.
+URL configuration for assistmeai project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/5.0/topics/http/urls/
@@ -19,7 +19,6 @@ from django.urls import path,include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('assistme.urls')),
-    path('assistme/', include('state.urls')),
+    path('assistme/', include('assistme.urls')),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 ]

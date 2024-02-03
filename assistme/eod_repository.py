@@ -1,9 +1,8 @@
-
 import numpy
 import pandas as pd
 import requests
-from djangoProject import config as cfg
-from djangoProject.config import eod_server
+from assistmeai import config as cfg
+from assistmeai.config import eod_server
 
 
 class EodDataRepository:
@@ -11,12 +10,13 @@ class EodDataRepository:
 
     def __init__(self):
 
-        self.eod_quote_url = eod_server+"eod/{0}.{1}?api_token={2}&from={3}&to={4}&fmt=json"
-        self.eos_fundamentals_url = eod_server+("/fundamentals/{0}.{1}?api_token={2}&fmt=json&filter=Highlights,"
-                                                "Valuation,Technicals,Earnings::trend,AnalystRatings")
+        self.eod_quote_url = eod_server + "eod/{0}.{1}?api_token={2}&from={3}&to={4}&fmt=json"
+        self.eos_fundamentals_url = eod_server + ("/fundamentals/{0}.{1}?api_token={2}&fmt=json&filter=Highlights,"
+                                                  "Valuation,Technicals,Earnings::trend,AnalystRatings")
+
     def get_eod_stock_data(self, ticker, market, from_date, to_date):
 
-        result =  requests.get(self.eod_quote_url.format(ticker, market, cfg.EOD_API_KEY,from_date,to_date)).json()
+        result = requests.get(self.eod_quote_url.format(ticker, market, cfg.EOD_API_KEY, from_date, to_date)).json()
 
         period = "A"
         delta = to_date - from_date
@@ -25,7 +25,6 @@ class EodDataRepository:
             period = "M"
         elif delta_weeks < 12:
             period = "W"
-
 
         df = pd.DataFrame(result)
         df["date_d"] = pd.to_datetime(df["date"])
@@ -38,9 +37,8 @@ class EodDataRepository:
 
         df = df.resample(period).last()
 
+        return df.to_json(orient="records")
 
-        return df.to_json(orient = "records")
     def get_eod_fundamental_data(self, ticker, market):
 
         return requests.get(self.eos_fundamentals_url.format(ticker, market, cfg.EOD_API_KEY)).json()
-

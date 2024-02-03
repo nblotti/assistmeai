@@ -7,6 +7,7 @@ metadata:
   name: assistmai
 spec:
   replicas: 1
+
   selector:
     matchLabels:
       app: assistmai
@@ -16,6 +17,7 @@ spec:
       creationTimestamp: null
       labels:
         app: assistmai
+      hostname: myhostname
     spec:
       containers:
       - image: nblotti/assistmeai
@@ -27,7 +29,6 @@ spec:
           - 0.0.0.0:8000
         resources: {}
       restartPolicy: Always
-
       imagePullSecrets:
         - name: regcred
 status: {}
