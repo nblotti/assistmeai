@@ -7,13 +7,13 @@ model4 = "gpt-4-0125-preview"
 
 common_model = model4
 
-model_get_ai_state = common_model
+model_get_ai_state = model35
 model_do_client = common_model
 model_do_memo = common_model
 model_do_query = common_model
 model_do_speach_to_text = common_model
 model_do_load_stock_quotes = common_model
-model_do_product= common_model
+model_do_product = common_model
 
 words_not_in_model = "client, clients,memo, memos,load"
 

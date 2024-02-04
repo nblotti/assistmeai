@@ -7,7 +7,7 @@ from rest_framework import status
 from assistme.command_manager import CommandManager
 
 
-class CommandController():
+class CommandController:
     # class variable
 
     def __init__(self, logger):
@@ -18,8 +18,11 @@ class CommandController():
         start = time.time()
         wbx_jwt_token = request.META.get('HTTP_WBXJWTTOKEN')
         firebase_token = request.META.get('HTTP_FIREBASETOKEN')
+        domain_header = request.META.get('HTTP_DOMAINHEADER')
+        if domain_header is None:
+            domain_header = ""
 
-        self.command_manager.do_check_command(request.data["messages"], wbx_jwt_token, firebase_token)
+        self.command_manager.do_check_command(request.data["messages"], wbx_jwt_token, firebase_token,domain_header)
 
         if not self.command_manager.in_error:
             self.command_manager.run_command()

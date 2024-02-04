@@ -26,7 +26,7 @@ class CommandManager(StateMachine):
     webex_api_detail_url = "https://webexapis.com/v1/recordings/{0}"
     document_api_url = assistme_server + "/api/requesttexttospeach/"
 
-    product_api_url = solr_server + "select?indent=true&select&q.op=OR&q="
+    product_api_url = solr_server + "select?indent=true&select&q.op=OR&q={0}"
 
     eodDataRepository = EodDataRepository()
 
@@ -75,18 +75,17 @@ class CommandManager(StateMachine):
         messages[:] = [message for message in messages if
                        not (message["role"] == "system" and "name" in message and message["name"] == "assistant")]
 
-    def command_marshalling(self, current_messages, wbx_jwt_token, firebase_token):
+    def command_marshalling(self, current_messages, wbx_jwt_token, firebase_token, domain_header):
 
         self.wbx_jwt_token = wbx_jwt_token
         self.firebase_token = firebase_token
-
         self.clearSystemMessages(current_messages)
 
         query_str = current_messages[::-1][0]["content"].lower()
 
         self.type = None
         if "load" in query_str:
-            if "memo" in query_str or "memos" in query_str:
+            if "memo" in query_str or "memos" in query_str :
                 self.type = ProcessType.LOAD_MEMO
             elif "client" in query_str or "clients" in query_str:
                 self.type = ProcessType.LOAD_CLIENT
@@ -96,7 +95,7 @@ class CommandManager(StateMachine):
                 self.type = ProcessType.LOAD_STOCK_QUOTE_DATA
             if "product" in query_str or "products" in query_str:
                 self.type = ProcessType.LOAD_PRODUCT
-        elif "text to speech" in query_str or "tts" in query_str:
+        elif "speech to text" in query_str or "stt" in query_str:
             self.type = ProcessType.SPEECH_TO_TEXT
         elif "summary" in query_str:
             self.type = ProcessType.QUERY
@@ -143,6 +142,7 @@ class CommandManager(StateMachine):
                            "here:"
                            "-load_memo"
                            "-load_client"
+                           "-load_product"
                            "-load_webex"
                            "-query"
                            "-speech_to_text"
@@ -151,30 +151,25 @@ class CommandManager(StateMachine):
             {
                 "role": "system",
                 "name": "assistant",
-                "content": "State cannot be 'load_memo' or  'load_client' when the last user message does not "
-                           "contains the word 'load'"
-
-            },
-            {
-                "role": "system",
-                "name": "assistant",
-                "content": "When a the last user message contains the word load and a known listed ticker or a firm's "
-                           "name, set state to 'load_stock_quotes_state'"
-                           "When a the last user message contains the word load and no known listed ticker and no "
-                           "firm's name, set state to 'load_client'"
-                #    "vhni is not a ticker"
-
-            },
-            {
-                "role": "system",
-                "name": "assistant",
-                "content": "Use state 'load_client' for questions related to load commodity data"
-
-            },
-            {
-                "role": "system",
-                "name": "assistant",
-                "content": "Use state 'query' for questions related to market or stock analysis "
+                "content": "Some examples : "
+                           "if the query is give me infos for Humphrey, return "
+                           "{'state':'load_client','reason':'Humphrey is not a listed company "
+                           "and info is not a synonym for memo'}"
+                           "if the query is give me the contacts for Humphrey, return "
+                           "{'state':'load_memo','reason':'contact and memos are synonyms'}"
+                           "if the query is give me the info for apple last six months, return "
+                           "{'state':'load_stock_quotes_state','reason':'aaple is  a listed company and no mention "
+                           "of client or memo is found'}"
+                           "if the query is give me the contacts for Cotton, return "
+                           "{'state':'load_memos','reason':'Commodities are not managed and contacts and memos are "
+                           "synonyms'}"
+                            "if the query is give me infos for Cotton, return"
+                           "{'state':'load_client','reason':'Commodities are not managed'}"
+                           "if the query is what do the analysts think of the Apple"
+                           "{'state':'query','reason':'Analysis is required.'}"
+                           "if the query is give me the products who have Facebook as an underlying"
+                           "{'state':'load_product','reason':'Although Facebook is a listed company, the user requested"
+                           "a list of products and products are not listed'}"
 
             },
             {
@@ -569,23 +564,45 @@ class CommandManager(StateMachine):
         message = self.data[len(self.data) - 1]
 
         messages = [
-            {"role": "system",
-             "name": "assistant",
-             "content": "You are a helpful assistant designed to build a query and return it into JSON."
-                        "JSON returned should be in the form {result:query }"
-             },
+
             {
                 "role": "system",
                 "name": "assistant",
-                "content": 'Build the query as a valid JSON structure in the form '
-                           '[{"underlying":"value",{"underlying":"value"}], where value is the name of the underlying'
-                           'product is not the name of an underlying'
-                           'if no underlying is found, return an empy array'
+                "content": "You are a helpful assistant designed to produce json"
             },
             {
                 "role": "system",
                 "name": "assistant",
-                "content": "Don't return 'load product' or 'load products' in the result"
+                "content": "Never use a value without the parameter name in the query. A value cannot be used for "
+                           "a parameter and a filter at the same time. Don't use two parameters for the same value. "
+            },
+            {
+                "role": "system",
+                "name": "assistant",
+                "content": "classify the parameters using the names in triple single quotes. The type of the parameter "
+                           "is indicated between parenthesis following the name :'''subtype(string)''',"
+                           "'''coupon(numeric)''','''underlyings(strings)''','''currency(string)''', "
+                           "'''echeance(date)''','''ISIN(string)''','''strike_level(numeric)''',"
+                           "'''barrier_level(numeric)''','''initial_fixing_date(date)''','''final_fixing_date(date)''',"
+                           "'''total_expense_ratio(numeric)''','''kid_content(string)''','''term_content(string)'''"
+            },
+            {
+                "role": "system",
+                "name": "assistant",
+                "content": "Based on the classified parameters, build the query in the form 'parameter:value' "
+                           "separated by ' AND '. Don't create parameters not existing in the parameter list."
+                           "A parameter cannot appear more than once in the query. Never use a value without the "
+                           "parameter name.For every value use only one word. Never take the verb. Do not use *.*"
+
+            },
+            {
+                "role": "system",
+                "name": "assistant",
+                "content": "Examples : If the query is : give me the product with underlying apple or ams  and a "
+                           "coupon bigger than 2% and a final fixing date before 2025 the query would be   "
+                           "'''type:product AND underlyings:(ams* Adidas*) and coupon: [4 TO *]and final_fixing_date: "
+                           "[* TO 2024-12-31T00:00:00Z ]'''If the query is : give me the products "
+                           "return  '''type:product'''"
             },
             message]
 
@@ -597,13 +614,9 @@ class CommandManager(StateMachine):
                 messages=messages
             )
 
-            result = json.loads(completion.choices[0].message.content)["result"]
+            query = json.loads(completion.choices[0].message.content)["query"]
 
-            if not len(result) == 0:
-                underlying = [underlying["underlying"] for underlying in result]
-                api_url = "{0}sous-jacents:{1}".format(self.product_api_url, ",".join(underlying))
-            else:
-                api_url = "{0}{1}".format(self.product_api_url, "type:product")
+            api_url = self.product_api_url.format(query)
 
             self.logger.debug(api_url)
             result = dict(type=ProcessType.LOAD_PRODUCT.value,
@@ -847,4 +860,4 @@ class ProcessType(Enum):
     QUERY = 'query'
     CLEAR = 'clear'
     LOAD_STOCK_QUOTE_DATA = 'load_stock_quotes_state'
-    LOAD_PRODUCT = 'products'
+    LOAD_PRODUCT = 'load_product'
