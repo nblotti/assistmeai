@@ -1,24 +1,43 @@
 import logging
 import time
 
+from langchain.chains.llm import LLMChain
+from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
+from langchain_openai import ChatOpenAI
+from starlette.responses import StreamingResponse
+
 from assistme.command_manager import process_command, PORTFOLIO, do_portfolio_command
 
 url: str = "https://positions.nblotti.org/positions/?start_date=2000-01-01"
 
 from fastapi import APIRouter, BackgroundTasks, requests
 
-
-router_command = APIRouter(
-    prefix="/command",
+router_aicommand = APIRouter(
+    prefix="/aicommand",
     tags=["items"],
     responses={404: {"description": "Not found"}},
 )
 
-@router_command.post("/test")
+
+@router_aicommand.get("/command")
 async def do_command(messages: dict):
     start = time.time()
 
-    res = process_command(messages["messages"])
+    chat = ChatOpenAI()
+
+    prompt = ChatPromptTemplate(
+        input_variables=["content"],
+        messages=[
+            HumanMessagePromptTemplate.from_template("{content}")
+        ]
+
+    )
+    chain = LLMChain(
+        llm=chat,
+        prompt=prompt
+    )
+
+    result = chain({"content":messages["content"]})
     end = time.time()
 
     logging.basicConfig(level=logging.DEBUG)
@@ -27,21 +46,4 @@ async def do_command(messages: dict):
     logging.debug("---------------------------------------------------------------------------")
 
     return dict(role="message",
-                content=res)
-
-
-@router_command.post("/portfolio")
-async def do_command(messages: dict):
-    start = time.time()
-
-    res = do_portfolio_command(messages["messages"])
-
-    end = time.time()
-
-    logging.basicConfig(level=logging.DEBUG)
-    logging.debug("---------------------------------------------------------------------------")
-    logging.debug("Elapsed time for global query : {0}".format(end - start))
-    logging.debug("---------------------------------------------------------------------------")
-
-    return dict(role="message",
-                content=res)
+                content=result)

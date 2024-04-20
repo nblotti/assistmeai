@@ -5,8 +5,8 @@ metadata:
 spec:
   type: NodePort
   ports:
-    - name: "8008"
-      port: 8008
+    - name: "8080"
+      port: 8080
       targetPort: 8000
   selector:
     app: assistmai

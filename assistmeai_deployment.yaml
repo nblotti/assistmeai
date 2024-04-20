@@ -1,34 +1,25 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  creationTimestamp: null
   labels:
     app: assistmai
   name: assistmai
 spec:
   replicas: 1
-
   selector:
     matchLabels:
       app: assistmai
-  strategy: {}
   template:
     metadata:
-      creationTimestamp: null
       labels:
         app: assistmai
-      hostname: myhostname
     spec:
       containers:
       - image: nblotti/assistmeai
         name: assistmeai
-        args:
-          - python
-          - manage.py
-          - runserver
-          - 0.0.0.0:8000
-        resources: {}
+        ports:
+        - containerPort: 8080
+          name: http
       restartPolicy: Always
       imagePullSecrets:
         - name: regcred
-status: {}
