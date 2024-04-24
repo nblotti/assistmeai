@@ -2,7 +2,6 @@ import os
 
 from langchain_community.document_loaders.pdf import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from pinecone import ServerlessSpec
 
 from vector_stores.pinecone import vector_store, pc
 
@@ -10,8 +9,8 @@ from vector_stores.pinecone import vector_store, pc
 class EmbeddingRepository:
     def __init__(self):
         self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=500,
-            chunk_overlap=100
+            chunk_size=1024,
+            chunk_overlap=200
         )
 
     def create_embeddings_for_pdf(self, blob_id, user_id, embeddings_file):

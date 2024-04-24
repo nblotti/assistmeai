@@ -1,7 +1,5 @@
 fastapi >= 0.110.1
 openai~=1.14.0
-ollama >= 0.1.8
-requests >= 2.31.0
 fastapi >= 0.110.1
 pydantic==1.10.13
 uvicorn[standard] >= 0.29.0
@@ -13,5 +11,4 @@ python-multipart >= 0.0.9
 pypdf >= 4.2.0
 pinecone-client >= 3.2.2
 starlette~=0.37.2
-numpy~=1.26.4
-pandas~=2.2.1
+psycopg2 >= 2.9.9

@@ -3,27 +3,79 @@ import os
 
 from dotenv import load_dotenv
 
-model_35 = "gpt-3.5-turbo-1106"
-model_4 = "gpt-4-0125-preview"
-model_lama = "gpt-4-0125-preview"
-use_model = model_35
-
-ai_request_timeout = 25
-
-data_format_str = "%Y-%m-%d %H:%M:%S"
+from DependencyManager import EmbeddingRepositoryProvider, PostgresDAOProvider, \
+    ConversationDAOProvider, PdfManagerProvider, MessageDAOProvider
 
 
-def load_config():
-    global eod_quote_url
+def load_config() -> PdfManagerProvider:
     logging.basicConfig(level=logging.DEBUG)
     logging.info("-----------------------------------------------------------------------------------------------")
     logging.info("loading config")
     load_dotenv()
+    pdf_manager_provider: PdfManagerProvider
+
     if os.getenv("ENVIRONNEMENT") == "PROD":
         logging.info("Starting in PROD mode")
-        eod_quote_url = "http://market-data-cluster/quotes/{0}/{1}"
+        db_name = "rag"
+        db_host = "rag.coenmrmhbaiw.us-east-2.rds.amazonaws.com"
+        db_port = "5432"
+        db_user = os.getenv("DB_PASSWORD")
+        db_password = os.getenv("DB_PASSWORD")
+        embedding_repository_provider = EmbeddingRepositoryProvider()
+
+        postgres_dao_provider = PostgresDAOProvider(
+            db_name=db_name,
+            db_host=db_host,
+            db_port=db_port,
+            db_user=db_user,
+            db_password=db_password
+        )
+        conversation_dao_provider = ConversationDAOProvider(
+            db_name=db_name,
+            db_host=db_host,
+            db_port=db_port,
+            db_user=db_user,
+            db_password=db_password
+        )
+        message_dao_provider = MessageDAOProvider(
+            db_name=db_name,
+            db_host=db_host,
+            db_port=db_port,
+            db_user=db_user,
+            db_password=db_password
+        )
+        return PdfManagerProvider(embedding_repository_provider, postgres_dao_provider,
+                                  conversation_dao_provider,message_dao_provider)
+
+
     else:
         logging.info("Starting in DEV mode")
-        eod_quote_url = "https://marketdata.nblotti.org/quotes/{0}/{1}"
-
-    logging.info("-----------------------------------------------------------------------------------------------")
+        db_name = "rag"
+        db_host = "rag.coenmrmhbaiw.us-east-2.rds.amazonaws.com"
+        db_port = "5432"
+        db_user = "postgres"
+        db_password = "postgres"
+        embedding_repository_provider = EmbeddingRepositoryProvider()
+        postgres_dao_provider = PostgresDAOProvider(
+            db_name=db_name,
+            db_host=db_host,
+            db_port=db_port,
+            db_user=db_user,
+            db_password=db_password
+        )
+        conversation_dao_provider = ConversationDAOProvider(
+            db_name=db_name,
+            db_host=db_host,
+            db_port=db_port,
+            db_user=db_user,
+            db_password=db_password
+        )
+        message_dao_provider = MessageDAOProvider(
+            db_name=db_name,
+            db_host=db_host,
+            db_port=db_port,
+            db_user=db_user,
+            db_password=db_password
+        )
+        return PdfManagerProvider(embedding_repository_provider, postgres_dao_provider,
+                                  conversation_dao_provider, message_dao_provider)

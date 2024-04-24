@@ -6,10 +6,8 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
 import config
-from assistme.command_controller import router_command
-from assistme.screen_controller import router_screen
-from assistmeai.AIController import router_ai
-from pdf.PdfController import router_file
+from chat.ChatController import chat_ai
+from files.FilesController import router_file
 from web.CommandAPIController import router_aicommand
 
 # Press Shift+F10 to execute it or replace it with your code.
@@ -30,10 +28,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(router_command)
-app.include_router(router_screen)
 app.include_router(router_aicommand)
-app.include_router(router_ai)
+app.include_router(chat_ai)
 app.include_router(router_file)
 
 @app.get("/ping")

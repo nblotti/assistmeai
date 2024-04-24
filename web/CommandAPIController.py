@@ -4,9 +4,7 @@ import time
 from langchain.chains.llm import LLMChain
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 from langchain_openai import ChatOpenAI
-from starlette.responses import StreamingResponse
 
-from assistme.command_manager import process_command, PORTFOLIO, do_portfolio_command
 
 url: str = "https://positions.nblotti.org/positions/?start_date=2000-01-01"
 
