@@ -37,6 +37,5 @@ def build_document_memory(interaction_manager: InteractionManager, conversation_
             interaction_manager=interaction_manager
         ),
         return_messages=True,
-        memory_key="chat_history",
-        output_key="answer"
+        memory_key="chat_history"
     )

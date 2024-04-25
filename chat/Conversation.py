@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 class Conversation(BaseModel):
     id:  Optional[str] = None
-    user_id: str
+    perimeter: str
     description: Optional[str] = "New conversation"
     pdf_id: Optional[str] = ""
     pdf_name: Optional[str] = ""
@@ -19,5 +19,5 @@ class Conversation(BaseModel):
             "id": self.id,
             "pdf_id": self.pdf_id,
             "created_on":self.created_on,
-            "user_id": self.user_id
+            "perimeter": self.perimeter
         }

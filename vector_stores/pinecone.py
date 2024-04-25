@@ -1,3 +1,4 @@
+import json
 import os
 
 from dotenv import load_dotenv
@@ -16,24 +17,23 @@ vector_store = Pinecone.from_existing_index(
 )
 
 
-def build_specific_document_retriever(user_id: str, blob_id: str):
+def build_specific_document_retriever(blob_id: str):
     return vector_store.as_retriever(
         search_kwargs={
 
             'filter': {
                 'blob_id': {"$eq": blob_id},
-                'user_id': user_id
             }
         }
     )
 
 
-def build_all_documents_retriever(user_id: str):
+def build_all_documents_retriever(perimeter: list[str]):
     return vector_store.as_retriever(
         search_kwargs={
 
             'filter': {
-                'user_id': user_id
+                'perimeter': {"$in":perimeter}
             }
         }
     )

@@ -14,11 +14,11 @@ pdf_manager_provider = load_config()
 
 
 @router_file.post("/")
-async def upload_file(userid: list[str] = Form(...), file: UploadFile = File(...),
+async def upload_file(perimeter: str = Form(...), file: UploadFile = File(...),
                       pdfmanager: InteractionManager = Depends(pdf_manager_provider.get_dependency)):
-    blob_id = await pdfmanager.upload_file(file, " ".join(userid))
+    result = await pdfmanager.upload_file(file, perimeter)
 
-    return {"filename": file.filename, "blob_id": blob_id}
+    return result
 
 
 @router_file.delete("/{blob_id}/")

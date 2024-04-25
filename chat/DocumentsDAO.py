@@ -7,15 +7,15 @@ import config
 
 
 class DocumentsDAO:
-    INSERT_PDF = """ INSERT INTO pdf ( name, userid, document)  VALUES ( %s, %s, %s) RETURNING id;"""
+    INSERT_PDF = """ INSERT INTO document ( name, perimeter, document)  VALUES ( %s, %s, %s) RETURNING id;"""
 
-    SELECT_DOCUMENT = """SELECT name, document , created_on FROM pdf WHERE id=%s """
+    SELECT_DOCUMENT = """SELECT name, document , created_on FROM document WHERE id=%s """
 
-    LIST_PDF = """SELECT id, name, userid , created_on FROM pdf"""
+    LIST_PDF = """SELECT id, name, perimeter , created_on FROM document"""
 
-    DELETE_PDF = """DELETE FROM pdf WHERE id = %s"""
+    DELETE_PDF = """DELETE FROM document WHERE id = %s"""
 
-    DELETE_ALL = """DELETE FROM pdf"""
+    DELETE_ALL = """DELETE FROM document"""
 
     db_name: str
     db_host: str

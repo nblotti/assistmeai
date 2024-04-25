@@ -8,16 +8,16 @@ from chat.Conversation import Conversation
 
 
 class ConversationDAO:
-    INSERT_DOCUMENT_CONVERSATION = "INSERT INTO conversation (document_id, user_id) VALUES (%s, %s) RETURNING id, created_on;"
-    INSERT_STANDALONE_CONVERSATION = "INSERT INTO conversation ( user_id) VALUES (%s) RETURNING id, created_on;"
+    INSERT_DOCUMENT_CONVERSATION = "INSERT INTO conversation (document_id, perimeter) VALUES (%s, %s) RETURNING id, created_on;"
+    INSERT_STANDALONE_CONVERSATION = "INSERT INTO conversation ( perimeter) VALUES (%s) RETURNING id, created_on;"
 
-    GET_CONVERSATION_BY_USER_ID = """SELECT c.id,c.user_id, c.description, c.document_id, 
+    GET_CONVERSATION_BY_PERIMETER = """SELECT c.id,c.perimeter, c.description, c.document_id, 
     COALESCE(p.name, '') AS document_name, c.created_on FROM conversation c 
-    left outer join  pdf p on c.document_id = p.id where c.user_id=%s"""
+    left outer join  document p on c.document_id = p.id where c.perimeter=%s"""
 
-    GET_CONVERSATION_BY_ID = """SELECT c.id,c.user_id, c.description, c.document_id, 
+    GET_CONVERSATION_BY_ID = """SELECT c.id,c.perimeter, c.description, c.document_id, 
     COALESCE(p.name, '') AS document_name, c.created_on FROM conversation c 
-    left outer join  pdf p on c.document_id = p.id where c.id=%s"""
+    left outer join  document p on c.document_id = p.id where c.id=%s"""
 
     GET_CONVERSATION_COUNT_BY_DOCUMENT_ID = """SELECT count(*) from conversation c where c.document_id=%s"""
 
@@ -44,10 +44,10 @@ class ConversationDAO:
         cursor = conn.cursor()
         if conversation.pdf_id is not None and len(conversation.pdf_id) != 0:
             cursor.execute(self.INSERT_DOCUMENT_CONVERSATION,
-                           (conversation.pdf_id, conversation.user_id))
+                           (conversation.pdf_id, conversation.perimeter))
         else:
             cursor.execute(self.INSERT_STANDALONE_CONVERSATION,
-                           conversation.user_id)
+                           conversation.perimeter)
 
         row = cursor.fetchone()
         conversation.id = row[0]
@@ -62,21 +62,21 @@ class ConversationDAO:
         cursor.execute(self.GET_CONVERSATION_BY_ID, (document_id,))
         row = cursor.fetchone()
 
-        conversation = Conversation(id=row[0], user_id=row[1], description=row[2], pdf_id=row[3], pdf_name=row[4],
+        conversation = Conversation(id=row[0], perimeter=row[1], description=row[2], pdf_id=row[3], pdf_name=row[4],
                                     created_on=row[5].strftime("%d.%m.%Y"))
 
         conn.close()
         return conversation
 
     # Function to get all messages  by conversation_id data from SQLite
-    def get_conversation_by_user_id(self, user_id):
+    def get_conversation_by_perimeter(self, perimeter):
         conn = self.buildConnection()
         cursor = conn.cursor()
-        cursor.execute(self.GET_CONVERSATION_BY_USER_ID, (user_id,))
+        cursor.execute(self.GET_CONVERSATION_BY_PERIMETER, (perimeter,))
         rows = cursor.fetchall()
 
         conversations = [
-            Conversation(id=row[0], user_id=row[1], description=row[2], pdf_id=row[3], pdf_name=row[4],
+            Conversation(id=row[0], perimeter=row[1], description=row[2], pdf_id=row[3], pdf_name=row[4],
                          created_on=row[5].strftime("%d.%m.%Y")).dict()
             for row in rows]
 

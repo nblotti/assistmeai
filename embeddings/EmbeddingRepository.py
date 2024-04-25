@@ -13,14 +13,14 @@ class EmbeddingRepository:
             chunk_overlap=200
         )
 
-    def create_embeddings_for_pdf(self, blob_id, user_id, embeddings_file):
+    def create_embeddings_for_pdf(self, blob_id, perimeter, embeddings_file):
         loader = PyPDFLoader(embeddings_file)
         docs = loader.load_and_split(self.text_splitter)
 
         for doc in docs:
             doc.metadata = {
                 "blob_id": blob_id,
-                "user_id": user_id,
+                "perimeter": perimeter,
                 "text": doc.page_content,
                 "page": doc.metadata["page"]
             }

@@ -22,19 +22,19 @@ class InteractionManager:
         It returns the id of the file and the filename, as well as the conversation id        
     '''
 
-    async def upload_file(self, file: File, user_id: [str]):
+    async def upload_file(self, file: File, perimeter: str):
 
         contents = await file.read()
 
-        blob_id = self.postgres_dao.save(file.filename, user_id[0], contents)
+        blob_id = self.postgres_dao.save(file.filename, perimeter, contents)
 
         temp_file = "./" + blob_id + ".files"
         with open(temp_file, "wb") as file_w:
             file_w.write(contents)
 
-        self.embedding_repository.create_embeddings_for_pdf(blob_id, user_id, temp_file)
+        self.embedding_repository.create_embeddings_for_pdf(blob_id, perimeter, temp_file)
         conversation = Conversation(
-            user_id=user_id,
+            perimeter=perimeter,
             pdf_id=blob_id,
         )
         conversation = self.conversation_dao.save(conversation)
@@ -92,11 +92,11 @@ class InteractionManager:
         else:
             self.conversation_dao.delete(conversation_id)
 
-    def get_conversation_by_user_id(self, user_id):
-        return self.conversation_dao.get_conversation_by_user_id(user_id)
+    def get_conversation_by_perimeter(self, perimeter):
+        return self.conversation_dao.get_conversation_by_perimeter(perimeter)
 
-    def get_conversation_by_id(self, user_id):
-        return self.conversation_dao.get_conversation_by_id(user_id)
+    def get_conversation_by_id(self, perimeter):
+        return self.conversation_dao.get_conversation_by_id(perimeter)
 
     def save(self, conversation):
         res = self.conversation_dao.save(conversation)

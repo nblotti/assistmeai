@@ -12,3 +12,4 @@ pypdf >= 4.2.0
 pinecone-client >= 3.2.2
 starlette~=0.37.2
 psycopg2 >= 2.9.9
+wikipedia >= 1.4.0
