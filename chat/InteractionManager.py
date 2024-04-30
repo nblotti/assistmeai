@@ -32,7 +32,7 @@ class InteractionManager:
         with open(temp_file, "wb") as file_w:
             file_w.write(contents)
 
-        self.embedding_repository.create_embeddings_for_pdf(blob_id, perimeter, temp_file)
+        self.embedding_repository.create_embeddings_for_pdf(blob_id, perimeter, temp_file,file.filename)
         conversation = Conversation(
             perimeter=perimeter,
             pdf_id=blob_id,
@@ -84,19 +84,16 @@ class InteractionManager:
     '''
 
     def delete_by_conversation_id(self, conversation_id):
-        conversation = self.conversation_dao.get_conversation_by_id(conversation_id)
-        count = self.conversation_dao.get_conversation_count_by_document_id(conversation.pdf_id)
-
-        if conversation.pdf_id != -1 and count == 1:
-            self.delete(conversation.pdf_id)
-        else:
-            self.conversation_dao.delete(conversation_id)
+        self.conversation_dao.delete(conversation_id)
 
     def get_conversation_by_perimeter(self, perimeter):
         return self.conversation_dao.get_conversation_by_perimeter(perimeter)
 
     def get_conversation_by_id(self, perimeter):
         return self.conversation_dao.get_conversation_by_id(perimeter)
+
+    def get_conversation_by_document_id(self, document_id,user_id):
+        return self.conversation_dao.get_conversation_by_document_id(document_id,user_id)
 
     def save(self, conversation):
         res = self.conversation_dao.save(conversation)

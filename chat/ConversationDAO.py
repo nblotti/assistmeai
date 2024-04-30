@@ -19,6 +19,11 @@ class ConversationDAO:
     COALESCE(p.name, '') AS document_name, c.created_on FROM conversation c 
     left outer join  document p on c.document_id = p.id where c.id=%s"""
 
+    GET_CONVERSATION_BY_FILE_ID = """SELECT c.id,c.perimeter, c.description, c.document_id, 
+      COALESCE(p.name, '') AS document_name, c.created_on FROM conversation c 
+      left outer join  document p on c.document_id = p.id where c.document_id=%s and c.perimeter=%s
+      order by c.created_on DESC"""
+
     GET_CONVERSATION_COUNT_BY_DOCUMENT_ID = """SELECT count(*) from conversation c where c.document_id=%s"""
 
     DELETE_CONVERSATION_BY_ID = "DELETE FROM conversation where id=%s"
@@ -56,10 +61,10 @@ class ConversationDAO:
         conn.close()
         return conversation
 
-    def get_conversation_by_id(self, document_id) -> Conversation:
+    def get_conversation_by_id(self, conversation_id) -> Conversation:
         conn = self.buildConnection()
         cursor = conn.cursor()
-        cursor.execute(self.GET_CONVERSATION_BY_ID, (document_id,))
+        cursor.execute(self.GET_CONVERSATION_BY_ID, (conversation_id,))
         row = cursor.fetchone()
 
         conversation = Conversation(id=row[0], perimeter=row[1], description=row[2], pdf_id=row[3], pdf_name=row[4],
@@ -104,6 +109,19 @@ class ConversationDAO:
         conn.commit()
         conn.close()
 
+    def get_conversation_by_document_id(self, document_id,user_id) -> Conversation:
+        conn = self.buildConnection()
+        cursor = conn.cursor()
+        cursor.execute(self.GET_CONVERSATION_BY_FILE_ID, (document_id,user_id))
+        rows = cursor.fetchall()
+
+        conversations = [
+            Conversation(id=row[0], perimeter=row[1], description=row[2], pdf_id=row[3], pdf_name=row[4],
+                         created_on=row[5].strftime("%d.%m.%Y")).dict()
+            for row in rows]
+
+        conn.close()
+        return conversations
 
     def get_conversation_count_by_document_id(self, pdf_id):
         conn = self.buildConnection()
