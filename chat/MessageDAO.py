@@ -8,8 +8,8 @@ from chat.Message import Message
 
 class MessageDAO:
     INSERT_MESSAGE = "INSERT INTO message (conversation_id,role, content,created_on) VALUES (%s, %s, %s,%s )"
-    GET_DOCUMENTS_BY_CONVERSATION_ID = "SELECT * from message where conversation_id=%s"
-    DELETE_DOCUMENTS_BY_CONVERSATION_ID = "DELETE FROM message where conversation_id=%s"
+    GET_MESSAGES_BY_CONVERSATION_ID = "SELECT * from message where conversation_id=%s"
+    DELETE_MESSAGES_BY_CONVERSATION_ID = "DELETE FROM message where conversation_id=%s"
     DELETE_ALL = "DELETE FROM message"
 
     db_name: str
@@ -35,7 +35,7 @@ class MessageDAO:
         conn.close()
 
     def get_all_messages_by_conversation_id(self, conversation_id) -> list[BaseMessage]:
-        return self.list_messages(self.GET_DOCUMENTS_BY_CONVERSATION_ID, conversation_id)
+        return self.list_messages(self.GET_MESSAGES_BY_CONVERSATION_ID, conversation_id)
 
     def list_messages(self, messages, arguments):
         conn = self.build_connection()
@@ -56,6 +56,13 @@ class MessageDAO:
         conn.commit()
         conn.close()
 
+    def delete_by_conversation_id(self, conversation_id):
+        conn = self.build_connection()
+        cursor = conn.cursor()
+        cursor.execute(self.DELETE_MESSAGES_BY_CONVERSATION_ID, (conversation_id,))
+        conn.commit()
+        conn.close()
+
     def build_connection(self):
         conn = connect(
             dbname=self.db_name,
@@ -65,3 +72,4 @@ class MessageDAO:
             port=self.db_port
         )
         return conn
+

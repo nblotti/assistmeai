@@ -97,10 +97,17 @@ async def conversation(conversation_id: str,
     return res
 
 
+@chat_ai.delete("/messages/{conversation_id}/")
+async def conversation(conversation_id: str,
+                       interaction_manager: InteractionManager = Depends(interaction_manager_provider.get_dependency)):
+    res = interaction_manager.delete_message_by_conversation_id(conversation_id)
+    return Response(status_code=200)
+
+
 '''
 ------------------------------------------------------------------------------------------------------------------------
 
-Messages entry point
+Command entry point
 
 ------------------------------------------------------------------------------------------------------------------------
 '''

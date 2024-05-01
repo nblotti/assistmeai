@@ -109,4 +109,4 @@ class InteractionManager:
         return self.message_dao.save(conversation_id, message)
 
     def delete_message_by_conversation_id(self, conversation_id):
-        pass
+        return self.message_dao.delete_by_conversation_id(conversation_id)
