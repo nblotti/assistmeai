@@ -3,26 +3,18 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query
 from fastapi import Response
-from langchain.agents import OpenAIFunctionsAgent, create_openai_tools_agent, AgentExecutor, create_tool_calling_agent
-from langchain.chains.conversational_retrieval.base import ConversationalRetrievalChain
-from langchain.chains.qa_with_sources.retrieval import RetrievalQAWithSourcesChain
+from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain.chains.retrieval_qa.base import RetrievalQA
-from langchain.chains.router import MultiRetrievalQAChain
-from langchain_community.retrievers.wikipedia import WikipediaRetriever
 from langchain_core.messages import SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate, MessagesPlaceholder
-from langchain_core.retrievers import BaseRetriever
-from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
 
 from chat.Conversation import Conversation
-from config import load_config
 from chat.InteractionManager import InteractionManager
-from chat.SqliteDAO import SqliteDAO
+from config import load_config
 from embeddings.CustomPineconeRetriever import CustomPineconeRetriever, QueryType
 from memories.SqlMessageHistory import build_document_memory
 from tools.tools import get_document_retreiver, get_wikipedia_retreiver
-from vector_stores.pinecone import build_all_documents_retriever, build_specific_document_retriever
 
 chat_ai = APIRouter(
     prefix="/chat",
@@ -63,7 +55,6 @@ async def conversations(document_id: str, user_id: str = Query(None),
                         interaction_manager: InteractionManager = Depends(interaction_manager_provider.get_dependency)):
     res = interaction_manager.get_conversation_by_document_id(document_id, user_id)
     return json.loads(json.dumps(res, cls=CustomEncoder))
-
 
 
 @chat_ai.delete("/conversations/{conversation_id}/")
@@ -124,9 +115,9 @@ async def message(command: str, conversation_id: str, perimeter: str = Query(...
     memory = build_document_memory(interaction_manager, conversation_id)
 
     if cur_conversation.pdf_id is None or cur_conversation.pdf_id == "-1":
-        rag_retriever = CustomPineconeRetriever(QueryType.PERIMETER,perimeter)
+        rag_retriever = CustomPineconeRetriever(QueryType.PERIMETER, perimeter)
     else:
-        rag_retriever = CustomPineconeRetriever(QueryType.DOCUMENT,cur_conversation.pdf_id)
+        rag_retriever = CustomPineconeRetriever(QueryType.DOCUMENT, cur_conversation.pdf_id)
 
     chain = RetrievalQA.from_chain_type(
         llm=chat,

@@ -8,6 +8,7 @@ from starlette.middleware.cors import CORSMiddleware
 import config
 from chat.ChatController import chat_ai
 from files.FilesController import router_file
+from pms.PmsController import pms_ai
 from web.CommandAPIController import router_aicommand
 
 # Press Shift+F10 to execute it or replace it with your code.
@@ -31,6 +32,7 @@ app.add_middleware(
 app.include_router(router_aicommand)
 app.include_router(chat_ai)
 app.include_router(router_file)
+app.include_router(pms_ai)
 
 @app.get("/ping")
 async def ping():
