@@ -6,6 +6,9 @@ from dotenv import load_dotenv
 from DependencyManager import EmbeddingRepositoryProvider, PostgresDAOProvider, \
     ConversationDAOProvider, PdfManagerProvider, MessageDAOProvider
 
+url_entries: str = "https://portfolio.nblotti.org/simulation/command"
+url_positions: str = "https://portfolio.nblotti.org/simulation/porfolio"
+
 
 def load_config() -> PdfManagerProvider:
     logging.basicConfig(level=logging.DEBUG)
@@ -13,9 +16,14 @@ def load_config() -> PdfManagerProvider:
     logging.info("loading config")
     load_dotenv()
     pdf_manager_provider: PdfManagerProvider
+    global url_entries
+    global url_positions
 
     if os.getenv("ENVIRONNEMENT") == "PROD":
         logging.info("Starting in PROD mode")
+
+        url_entries = "http://portfolio-cluster/simulation/command"
+        url_positions = "http://portfolio-cluster/simulation/porfolio"
         db_name = "rag"
         db_host = "rag.coenmrmhbaiw.us-east-2.rds.amazonaws.com"
         db_port = "5432"
@@ -45,11 +53,13 @@ def load_config() -> PdfManagerProvider:
             db_password=db_password
         )
         return PdfManagerProvider(embedding_repository_provider, postgres_dao_provider,
-                                  conversation_dao_provider,message_dao_provider)
+                                  conversation_dao_provider, message_dao_provider)
 
 
     else:
         logging.info("Starting in DEV mode")
+        url_entries= "https://portfolio.nblotti.org/simulation/command"
+        url_positions = "https://portfolio.nblotti.org/simulation/porfolio"
         db_name = "rag"
         db_host = "rag.coenmrmhbaiw.us-east-2.rds.amazonaws.com"
         db_port = "5432"
