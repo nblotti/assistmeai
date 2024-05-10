@@ -8,10 +8,11 @@ CREATE TABLE document (
 
 CREATE TABLE message (
     id SERIAL PRIMARY KEY,  -- SERIAL is equivalent to AUTO_INCREMENT in MySQL
-    conversation_id TEXT,
+    conversation_id INTEGER,
     role TEXT,
     content TEXT,
-    created_on TIMESTAMP  DEFAULT TO_TIMESTAMP(TO_CHAR(CURRENT_TIMESTAMP, 'DD.MM.YYYY'), 'DD.MM.YYYY')
+    created_on TIMESTAMP  DEFAULT TO_TIMESTAMP(TO_CHAR(CURRENT_TIMESTAMP, 'DD.MM.YYYY'), 'DD.MM.YYYY'),
+    FOREIGN KEY (conversation_id) REFERENCES conversation(id) ON DELETE CASCADE
 );
 
 CREATE TABLE conversation (
@@ -21,3 +22,18 @@ CREATE TABLE conversation (
     description VARCHAR(255) DEFAULT 'New chat',
     created_on TIMESTAMP   DEFAULT TO_TIMESTAMP(TO_CHAR(CURRENT_TIMESTAMP, 'DD.MM.YYYY'), 'DD.MM.YYYY')
 );
+
+-- Create the trigger function
+CREATE OR REPLACE FUNCTION delete_related_conversations()
+RETURNS TRIGGER AS $$
+BEGIN
+    DELETE FROM conversation WHERE document_id = OLD.id;
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create the trigger
+CREATE TRIGGER delete_conversations_trigger
+AFTER DELETE ON document
+FOR EACH ROW
+EXECUTE FUNCTION delete_related_conversations();

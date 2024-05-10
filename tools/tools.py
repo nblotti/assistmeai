@@ -1,10 +1,7 @@
-import logging
-
 from langchain.tools.retriever import create_retriever_tool
 from langchain_community.retrievers.wikipedia import WikipediaRetriever
-from langchain_core.tools import Tool
 
-from chat.Conversation import Conversation
+from conversation.Conversation import Conversation
 from vector_stores.pinecone import build_all_documents_retriever, build_specific_document_retriever
 
 

@@ -1,12 +1,7 @@
-import json
-from datetime import datetime
-
 from psycopg2 import connect, Binary
 
-import config
 
-
-class DocumentsDAO:
+class DocumentsRepository:
     INSERT_PDF = """ INSERT INTO document ( name, perimeter, document)  VALUES ( %s, %s, %s) RETURNING id;"""
 
     SELECT_DOCUMENT = """SELECT name, document , created_on FROM document WHERE id=%s """
@@ -29,6 +24,7 @@ class DocumentsDAO:
         self.db_port = db_port
         self.db_user = db_user
         self.db_password = db_password
+
 
     # Function to store blob data in SQLite
     def save(self, filename, userid, blob_data) -> str:
@@ -59,9 +55,9 @@ class DocumentsDAO:
         cursor.execute(self.LIST_PDF)
         result = cursor.fetchall()
         conn.close()
-        return json.dumps(result, cls=CustomEncoder)
+        return result
 
-    def delete_by_ids(self, blob_ids: str):
+    def delete_by_id(self, blob_ids: str):
         conn = self.buildConnection()
         cursor = conn.cursor()
         cursor.execute(self.DELETE_PDF, (blob_ids,))
@@ -86,8 +82,3 @@ class DocumentsDAO:
         return conn
 
 
-class CustomEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, datetime):
-            return obj.strftime("%d.%m.%Y")  # Convert datetime object to string in "dd.MM.YYYY" format
-        return json.JSONEncoder.default(self, obj)

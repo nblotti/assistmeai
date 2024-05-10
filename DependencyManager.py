@@ -1,9 +1,11 @@
-from chat.ConversationDAO import ConversationDAO
-from chat.MessageDAO import MessageDAO
+from chat.ChatManager import ChatManager
+from config import db_name, db_host, db_port, db_user, db_password
+
+from conversation.ConversationRepository import ConversationRepository
+from document.DocumentsRepository import DocumentsRepository
 from embeddings.EmbeddingRepository import EmbeddingRepository
-from chat.InteractionManager import InteractionManager
-from chat.DocumentsDAO import DocumentsDAO
-from chat.SqliteDAO import SqliteDAO
+from message.MessageRepository import MessageRepository
+
 
 
 class EmbeddingRepositoryProvider:
@@ -11,7 +13,7 @@ class EmbeddingRepositoryProvider:
         return EmbeddingRepository()
 
 
-class PostgresDAOProvider:
+class DocumentDAOProvider:
     db_name: str
     db_host: str
     db_port: str
@@ -26,7 +28,7 @@ class PostgresDAOProvider:
         self.db_password = db_password
 
     def get_dependency(self):
-        return DocumentsDAO(
+        return DocumentsRepository(
             db_name=self.db_name,
             db_host=self.db_host,
             db_port=self.db_port,
@@ -50,7 +52,7 @@ class ConversationDAOProvider:
         self.db_password = db_password
 
     def get_dependency(self):
-        return ConversationDAO(
+        return ConversationRepository(
             db_name=self.db_name,
             db_host=self.db_host,
             db_port=self.db_port,
@@ -74,7 +76,7 @@ class MessageDAOProvider:
         self.db_password = db_password
 
     def get_dependency(self):
-        return MessageDAO(
+        return MessageRepository(
             db_name=self.db_name,
             db_host=self.db_host,
             db_port=self.db_port,
@@ -83,20 +85,29 @@ class MessageDAOProvider:
         )
 
 
-# Define an outer dependency provider class
-class PdfManagerProvider:
-    def __init__(self, embedding_repository_provider: EmbeddingRepositoryProvider,
-                 postgres_dao_provider: PostgresDAOProvider,
-                 conversation_dao_provider: ConversationDAOProvider,
-                 message_dao_provider: MessageDAOProvider):
-        self.embedding_repositoryProvider = embedding_repository_provider
-        self.postgres_dao_provider = postgres_dao_provider
-        self.conversation_dao_provider = conversation_dao_provider
-        self.message_dao_provider = message_dao_provider
+class ChatManagerProvider:
+    def get_dependency(self) -> ChatManager:
+        return ChatManager()
 
-    def get_dependency(self) -> InteractionManager:
-        embedding_repository = self.embedding_repositoryProvider.get_dependency()
-        postrgres_dao = self.postgres_dao_provider.get_dependency()
-        conversation_dao = self.conversation_dao_provider.get_dependency()
-        message_dao = self.message_dao_provider.get_dependency()
-        return InteractionManager(embedding_repository, postrgres_dao, conversation_dao, message_dao)
+
+document_dao_provider = DocumentDAOProvider(
+    db_name=db_name,
+    db_host=db_host,
+    db_port=db_port,
+    db_user=db_user,
+    db_password=db_password
+)
+conversation_dao_provider = ConversationDAOProvider(
+    db_name=db_name,
+    db_host=db_host,
+    db_port=db_port,
+    db_user=db_user,
+    db_password=db_password
+)
+message_dao_provider = MessageDAOProvider(
+    db_name=db_name,
+    db_host=db_host,
+    db_port=db_port,
+    db_user=db_user,
+    db_password=db_password
+)

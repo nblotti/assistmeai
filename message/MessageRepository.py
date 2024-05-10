@@ -3,10 +3,10 @@ from datetime import datetime
 from langchain_core.messages import BaseMessage
 from psycopg2 import connect
 
-from chat.Message import Message
+from message.Message import Message
 
 
-class MessageDAO:
+class MessageRepository:
     INSERT_MESSAGE = "INSERT INTO message (conversation_id,role, content,created_on) VALUES (%s, %s, %s,%s )"
     GET_MESSAGES_BY_CONVERSATION_ID = "SELECT * from message where conversation_id=%s"
     DELETE_MESSAGES_BY_CONVERSATION_ID = "DELETE FROM message where conversation_id=%s"
@@ -46,7 +46,7 @@ class MessageDAO:
 
         returned: list[BaseMessage] = []
         for row in result:
-            returned.append(Message(row[0], row[1], row[2], row[3], row[4]).as_lc_message())
+            returned.append(Message(row[0],row[4], row[1], row[2], row[3]).as_lc_message())
         return returned if returned else []
 
     def delete_all(self):

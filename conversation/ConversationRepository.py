@@ -1,13 +1,9 @@
-import json
-from datetime import datetime
-
 from psycopg2 import connect
 
-import config
-from chat.Conversation import Conversation
+from conversation.Conversation import Conversation
 
 
-class ConversationDAO:
+class ConversationRepository:
     INSERT_DOCUMENT_CONVERSATION = "INSERT INTO conversation (document_id, perimeter) VALUES (%s, %s) RETURNING id, created_on;"
     INSERT_STANDALONE_CONVERSATION = "INSERT INTO conversation ( perimeter) VALUES (%s) RETURNING id, created_on;"
 

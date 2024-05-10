@@ -15,7 +15,7 @@ pms_ai = APIRouter(
 
 interaction_manager_provider = load_config()
 
-chat = ChatOpenAI(model="gpt-3.5-turbo-1106", temperature=0, verbose=True)
+chat = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, verbose=True)
 
 
 @pms_ai.get("/")

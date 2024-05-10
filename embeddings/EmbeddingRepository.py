@@ -1,4 +1,5 @@
 import os
+import uuid
 
 from langchain_community.document_loaders.pdf import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -16,7 +17,7 @@ class EmbeddingRepository:
     def create_embeddings_for_pdf(self, blob_id, perimeter, embeddings_file, file_name):
         loader = PyPDFLoader(embeddings_file)
         docs = loader.load_and_split(self.text_splitter)
-
+        ids = []
         for doc in docs:
             doc.metadata = {
                 "file_name": file_name,
@@ -25,13 +26,18 @@ class EmbeddingRepository:
                 "text": doc.page_content,
                 "page": doc.metadata["page"]
             }
-        vector_store.add_documents(docs)
+            ids.append(blob_id + "#" + str(uuid.uuid4()))
+        vector_store.add_documents(
+            documents=docs,
+            ids=ids)
 
     def delete_embeddings_by_file_id(self, blob_id):
-        pass
+        index_name = os.getenv("PINECONE_INDEX_NAME")
+        index = pc.Index(index_name)
+        for ids in index.list(prefix=blob_id + '#'):
+            index.delete(ids=ids)
 
     def delete_all_embeddings(self):
         index_name = os.getenv("PINECONE_INDEX_NAME")
         index = pc.Index(index_name)
         index.delete(delete_all=True)
-
