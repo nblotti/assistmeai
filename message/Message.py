@@ -25,4 +25,4 @@ class Message:
         elif self.role == "system":
             return SystemMessage(content=self.content)
         else:
-            raise Exception(f"Unknown message role: {self.role}")
+            raise ValueError(f"Unknown message role: {self.role}")

@@ -20,9 +20,8 @@ chat = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, verbose=True)
 
 @pms_ai.get("/")
 def do_portfolio_command(command):
-    start = time.time()
 
-    chat = ChatOpenAI()
+    ai_chat = ChatOpenAI()
     prompt = ChatPromptTemplate(
         messages=[
             HumanMessagePromptTemplate.from_template("{input}"),
@@ -33,7 +32,7 @@ def do_portfolio_command(command):
     tools = [quarterly_dollar_average_strategy, set_display]
 
     agent = OpenAIFunctionsAgent(
-        llm=chat,
+        llm=ai_chat,
         prompt=prompt,
         tools=tools
     )

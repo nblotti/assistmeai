@@ -28,7 +28,7 @@ class DocumentsRepository:
 
     # Function to store blob data in SQLite
     def save(self, filename, userid, blob_data) -> str:
-        conn = self.buildConnection()
+        conn = self.build_connection()
         cursor = conn.cursor()
         cursor.execute(self.INSERT_PDF_QUERY,
                        (filename, userid, Binary(blob_data)))
@@ -41,7 +41,7 @@ class DocumentsRepository:
 
     # Function to retrieve blob data from SQLite
     def get_by_id(self, blob_id):
-        conn = self.buildConnection()
+        conn = self.build_connection()
         cursor = conn.cursor()
         cursor.execute(self.SELECT_DOCUMENT_QUERY, (blob_id,))
         result = cursor.fetchone()
@@ -50,7 +50,7 @@ class DocumentsRepository:
 
     def list(self) -> str:
         """List all documents"""
-        conn = self.buildConnection()
+        conn = self.build_connection()
         cursor = conn.cursor()
         cursor.execute(self.LIST_PDF_QUERY)
         result = cursor.fetchall()
@@ -58,20 +58,20 @@ class DocumentsRepository:
         return result
 
     def delete_by_id(self, blob_ids: str):
-        conn = self.buildConnection()
+        conn = self.build_connection()
         cursor = conn.cursor()
         cursor.execute(self.DELETE_PDF_QUERY, (blob_ids,))
         conn.commit()
         conn.close()
 
     def delete_all(self):
-        conn = self.buildConnection()
+        conn = self.build_connection()
         cursor = conn.cursor()
         cursor.execute(self.DELETE_ALL_QUERY)
         conn.commit()
         conn.close()
 
-    def buildConnection(self):
+    def build_connection(self):
         conn = connect(
             dbname=self.db_name,
             user=self.db_user,

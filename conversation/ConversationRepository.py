@@ -41,7 +41,7 @@ class ConversationRepository:
 
     # Function to store a message data in SQLite
     def save(self, conversation: Conversation):
-        conn = self.buildConnection()
+        conn = self.build_connection()
         cursor = conn.cursor()
         if conversation.pdf_id is not None and len(conversation.pdf_id) != 0:
             cursor.execute(self.INSERT_DOCUMENT_CONVERSATION_QUERY,
@@ -58,7 +58,7 @@ class ConversationRepository:
         return conversation
 
     def get_conversation_by_id(self, conversation_id) -> Conversation:
-        conn = self.buildConnection()
+        conn = self.build_connection()
         cursor = conn.cursor()
         cursor.execute(self.GET_CONVERSATION_BY_ID_QUERY, (conversation_id,))
         row = cursor.fetchone()
@@ -71,7 +71,7 @@ class ConversationRepository:
 
     # Function to get all messages  by conversation_id data from SQLite
     def get_conversation_by_perimeter(self, perimeter):
-        conn = self.buildConnection()
+        conn = self.build_connection()
         cursor = conn.cursor()
         cursor.execute(self.GET_CONVERSATION_BY_PERIMETER_QUERY, (perimeter,))
         rows = cursor.fetchall()
@@ -85,28 +85,28 @@ class ConversationRepository:
         return conversations
 
     def delete(self, id: str):
-        conn = self.buildConnection()
+        conn = self.build_connection()
         cursor = conn.cursor()
         cursor.execute(self.DELETE_CONVERSATION_BY_ID_QUERY, (id,))
         conn.commit()
         conn.close()
 
     def delete_by_file_id(self, blob_id: str):
-        conn = self.buildConnection()
+        conn = self.build_connection()
         cursor = conn.cursor()
         cursor.execute(self.DELETE_CONVERSATION_BY_DOCUMENT_ID_QUERY, (blob_id,))
         conn.commit()
         conn.close()
 
     def delete_all(self):
-        conn = self.buildConnection()
+        conn = self.build_connection()
         cursor = conn.cursor()
         cursor.execute(self.DELETE_ALL_QUERY)
         conn.commit()
         conn.close()
 
-    def get_conversation_by_document_id(self, document_id,user_id) -> Conversation:
-        conn = self.buildConnection()
+    def get_conversation_by_document_id(self, document_id,user_id) :
+        conn = self.build_connection()
         cursor = conn.cursor()
         cursor.execute(self.GET_CONVERSATION_BY_FILE_ID_QUERY, (document_id, user_id))
         rows = cursor.fetchall()
@@ -120,7 +120,7 @@ class ConversationRepository:
         return conversations
 
     def get_conversation_count_by_document_id(self, pdf_id):
-        conn = self.buildConnection()
+        conn = self.build_connection()
         cursor = conn.cursor()
         cursor.execute(self.GET_CONVERSATION_COUNT_BY_DOCUMENT_ID_QUERY, (pdf_id,))
 
@@ -129,7 +129,7 @@ class ConversationRepository:
         conn.close()
         return count
 
-    def buildConnection(self):
+    def build_connection(self):
         conn = connect(
             dbname=self.db_name,
             user=self.db_user,

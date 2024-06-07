@@ -17,7 +17,7 @@ class QueryType(Enum):
 
 
 class CustomPineconeRetriever(BaseRetriever):
-    filter: dict = []
+    filter: dict = {}
 
     def __init__(self, query_type: QueryType, value: str, **kwargs: Any):
         super().__init__(**kwargs)

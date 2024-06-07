@@ -34,7 +34,7 @@ async def conversation(message_repository: message_repository_dep, conversation_
 
 @message_router.delete("/")
 async def conversation(message_repository: message_repository_dep,conversation_id: str):
-    res = message_repository.delete_by_conversation_id(conversation_id)
+    message_repository.delete_by_conversation_id(conversation_id)
     return Response(status_code=200)
 
 
