@@ -4,27 +4,27 @@ from conversation.Conversation import Conversation
 
 
 class ConversationRepository:
-    INSERT_DOCUMENT_CONVERSATION = "INSERT INTO conversation (document_id, perimeter) VALUES (%s, %s) RETURNING id, created_on;"
-    INSERT_STANDALONE_CONVERSATION = "INSERT INTO conversation ( perimeter) VALUES (%s) RETURNING id, created_on;"
+    INSERT_DOCUMENT_CONVERSATION_QUERY = "INSERT INTO conversation (document_id, perimeter) VALUES (%s, %s) RETURNING id, created_on;"
+    INSERT_STANDALONE_CONVERSATION_QUERY = "INSERT INTO conversation ( perimeter) VALUES (%s) RETURNING id, created_on;"
 
-    GET_CONVERSATION_BY_PERIMETER = """SELECT c.id,c.perimeter, c.description, c.document_id, 
+    GET_CONVERSATION_BY_PERIMETER_QUERY = """SELECT c.id,c.perimeter, c.description, c.document_id, 
     COALESCE(p.name, '') AS document_name, c.created_on FROM conversation c 
     left outer join  document p on c.document_id = p.id where c.perimeter=%s"""
 
-    GET_CONVERSATION_BY_ID = """SELECT c.id,c.perimeter, c.description, c.document_id, 
+    GET_CONVERSATION_BY_ID_QUERY = """SELECT c.id,c.perimeter, c.description, c.document_id, 
     COALESCE(p.name, '') AS document_name, c.created_on FROM conversation c 
     left outer join  document p on c.document_id = p.id where c.id=%s"""
 
-    GET_CONVERSATION_BY_FILE_ID = """SELECT c.id,c.perimeter, c.description, c.document_id, 
+    GET_CONVERSATION_BY_FILE_ID_QUERY = """SELECT c.id,c.perimeter, c.description, c.document_id, 
       COALESCE(p.name, '') AS document_name, c.created_on FROM conversation c 
       left outer join  document p on c.document_id = p.id where c.document_id=%s and c.perimeter=%s
       order by c.created_on DESC"""
 
-    GET_CONVERSATION_COUNT_BY_DOCUMENT_ID = """SELECT count(*) from conversation c where c.document_id=%s"""
+    GET_CONVERSATION_COUNT_BY_DOCUMENT_ID_QUERY = """SELECT count(*) from conversation c where c.document_id=%s"""
 
-    DELETE_CONVERSATION_BY_ID = "DELETE FROM conversation where id=%s"
-    DELETE_CONVERSATION_BY_DOCUMENT_ID = "DELETE FROM conversation where document_id=%s"
-    DELETE_ALL = "DELETE FROM conversation"
+    DELETE_CONVERSATION_BY_ID_QUERY = "DELETE FROM conversation where id=%s"
+    DELETE_CONVERSATION_BY_DOCUMENT_ID_QUERY = "DELETE FROM conversation where document_id=%s"
+    DELETE_ALL_QUERY = "DELETE FROM conversation"
 
     db_name: str
     db_host: str
@@ -44,10 +44,10 @@ class ConversationRepository:
         conn = self.buildConnection()
         cursor = conn.cursor()
         if conversation.pdf_id is not None and len(conversation.pdf_id) != 0:
-            cursor.execute(self.INSERT_DOCUMENT_CONVERSATION,
+            cursor.execute(self.INSERT_DOCUMENT_CONVERSATION_QUERY,
                            (conversation.pdf_id, conversation.perimeter))
         else:
-            cursor.execute(self.INSERT_STANDALONE_CONVERSATION,
+            cursor.execute(self.INSERT_STANDALONE_CONVERSATION_QUERY,
                            conversation.perimeter)
 
         row = cursor.fetchone()
@@ -60,7 +60,7 @@ class ConversationRepository:
     def get_conversation_by_id(self, conversation_id) -> Conversation:
         conn = self.buildConnection()
         cursor = conn.cursor()
-        cursor.execute(self.GET_CONVERSATION_BY_ID, (conversation_id,))
+        cursor.execute(self.GET_CONVERSATION_BY_ID_QUERY, (conversation_id,))
         row = cursor.fetchone()
 
         conversation = Conversation(id=row[0], perimeter=row[1], description=row[2], pdf_id=row[3], pdf_name=row[4],
@@ -73,7 +73,7 @@ class ConversationRepository:
     def get_conversation_by_perimeter(self, perimeter):
         conn = self.buildConnection()
         cursor = conn.cursor()
-        cursor.execute(self.GET_CONVERSATION_BY_PERIMETER, (perimeter,))
+        cursor.execute(self.GET_CONVERSATION_BY_PERIMETER_QUERY, (perimeter,))
         rows = cursor.fetchall()
 
         conversations = [
@@ -87,28 +87,28 @@ class ConversationRepository:
     def delete(self, id: str):
         conn = self.buildConnection()
         cursor = conn.cursor()
-        cursor.execute(self.DELETE_CONVERSATION_BY_ID, (id,))
+        cursor.execute(self.DELETE_CONVERSATION_BY_ID_QUERY, (id,))
         conn.commit()
         conn.close()
 
     def delete_by_file_id(self, blob_id: str):
         conn = self.buildConnection()
         cursor = conn.cursor()
-        cursor.execute(self.DELETE_CONVERSATION_BY_DOCUMENT_ID, (blob_id,))
+        cursor.execute(self.DELETE_CONVERSATION_BY_DOCUMENT_ID_QUERY, (blob_id,))
         conn.commit()
         conn.close()
 
     def delete_all(self):
         conn = self.buildConnection()
         cursor = conn.cursor()
-        cursor.execute(self.DELETE_ALL)
+        cursor.execute(self.DELETE_ALL_QUERY)
         conn.commit()
         conn.close()
 
     def get_conversation_by_document_id(self, document_id,user_id) -> Conversation:
         conn = self.buildConnection()
         cursor = conn.cursor()
-        cursor.execute(self.GET_CONVERSATION_BY_FILE_ID, (document_id,user_id))
+        cursor.execute(self.GET_CONVERSATION_BY_FILE_ID_QUERY, (document_id, user_id))
         rows = cursor.fetchall()
 
         conversations = [
@@ -122,7 +122,7 @@ class ConversationRepository:
     def get_conversation_count_by_document_id(self, pdf_id):
         conn = self.buildConnection()
         cursor = conn.cursor()
-        cursor.execute(self.GET_CONVERSATION_COUNT_BY_DOCUMENT_ID, (pdf_id,))
+        cursor.execute(self.GET_CONVERSATION_COUNT_BY_DOCUMENT_ID_QUERY, (pdf_id,))
 
         count = cursor.fetchone()[0]
 

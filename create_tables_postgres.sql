@@ -1,3 +1,6 @@
+DECLARE
+  co_action CONSTANT VARCHAR2(7) := 'action1';
+
 CREATE TABLE document (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255),

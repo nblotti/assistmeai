@@ -23,9 +23,6 @@ class SqlMessageHistory(BaseChatMessageHistory):
         """ Creates and stores a new message tied to the given conversation_id  with the provided role and content """
         return self.message_repository.save(self.conversation_id, message)
 
-    def clear(self):
-        pass
-
 
 def build_document_memory(message_repository: MessageRepository, conversation_id):
     return ConversationBufferMemory(

@@ -2,15 +2,15 @@ from psycopg2 import connect, Binary
 
 
 class DocumentsRepository:
-    INSERT_PDF = """ INSERT INTO document ( name, perimeter, document)  VALUES ( %s, %s, %s) RETURNING id;"""
+    INSERT_PDF_QUERY = """ INSERT INTO document ( name, perimeter, document)  VALUES ( %s, %s, %s) RETURNING id;"""
 
-    SELECT_DOCUMENT = """SELECT name, document , created_on FROM document WHERE id=%s """
+    SELECT_DOCUMENT_QUERY = """SELECT name, document , created_on FROM document WHERE id=%s """
 
-    LIST_PDF = """SELECT id, name, perimeter , created_on FROM document"""
+    LIST_PDF_QUERY = """SELECT id, name, perimeter , created_on FROM document"""
 
-    DELETE_PDF = """DELETE FROM document WHERE id = %s"""
+    DELETE_PDF_QUERY = """DELETE FROM document WHERE id = %s"""
 
-    DELETE_ALL = """DELETE FROM document"""
+    DELETE_ALL_QUERY = """DELETE FROM document"""
 
     db_name: str
     db_host: str
@@ -30,7 +30,7 @@ class DocumentsRepository:
     def save(self, filename, userid, blob_data) -> str:
         conn = self.buildConnection()
         cursor = conn.cursor()
-        cursor.execute(self.INSERT_PDF,
+        cursor.execute(self.INSERT_PDF_QUERY,
                        (filename, userid, Binary(blob_data)))
         generated_id = cursor.fetchone()[0]  # Fetch the first column of the first row
 
@@ -43,7 +43,7 @@ class DocumentsRepository:
     def get_by_id(self, blob_id):
         conn = self.buildConnection()
         cursor = conn.cursor()
-        cursor.execute(self.SELECT_DOCUMENT, (blob_id,))
+        cursor.execute(self.SELECT_DOCUMENT_QUERY, (blob_id,))
         result = cursor.fetchone()
         conn.close()
         return result if result else None
@@ -52,7 +52,7 @@ class DocumentsRepository:
         """List all documents"""
         conn = self.buildConnection()
         cursor = conn.cursor()
-        cursor.execute(self.LIST_PDF)
+        cursor.execute(self.LIST_PDF_QUERY)
         result = cursor.fetchall()
         conn.close()
         return result
@@ -60,14 +60,14 @@ class DocumentsRepository:
     def delete_by_id(self, blob_ids: str):
         conn = self.buildConnection()
         cursor = conn.cursor()
-        cursor.execute(self.DELETE_PDF, (blob_ids,))
+        cursor.execute(self.DELETE_PDF_QUERY, (blob_ids,))
         conn.commit()
         conn.close()
 
     def delete_all(self):
         conn = self.buildConnection()
         cursor = conn.cursor()
-        cursor.execute(self.DELETE_ALL)
+        cursor.execute(self.DELETE_ALL_QUERY)
         conn.commit()
         conn.close()
 

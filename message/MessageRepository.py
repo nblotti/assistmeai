@@ -7,10 +7,10 @@ from message.Message import Message
 
 
 class MessageRepository:
-    INSERT_MESSAGE = "INSERT INTO message (conversation_id,role, content,created_on) VALUES (%s, %s, %s,%s )"
-    GET_MESSAGES_BY_CONVERSATION_ID = "SELECT * from message where conversation_id=%s"
-    DELETE_MESSAGES_BY_CONVERSATION_ID = "DELETE FROM message where conversation_id=%s"
-    DELETE_ALL = "DELETE FROM message"
+    INSERT_MESSAGE_QUERY = "INSERT INTO message (conversation_id,role, content,created_on) VALUES (%s, %s, %s,%s )"
+    GET_MESSAGES_BY_CONVERSATION_ID_QUERY = "SELECT * from message where conversation_id=%s"
+    DELETE_MESSAGES_BY_CONVERSATION_ID_QUERY = "DELETE FROM message where conversation_id=%s"
+    DELETE_ALL_QUERY = "DELETE FROM message"
 
     db_name: str
     db_host: str
@@ -29,13 +29,13 @@ class MessageRepository:
     def save(self, conversation_id, message: BaseMessage):
         conn = self.build_connection()
         cursor = conn.cursor()
-        cursor.execute(self.INSERT_MESSAGE,
+        cursor.execute(self.INSERT_MESSAGE_QUERY,
                        (conversation_id, message.type, message.content, datetime.now()))
         conn.commit()
         conn.close()
 
     def get_all_messages_by_conversation_id(self, conversation_id) -> list[BaseMessage]:
-        return self.list_messages(self.GET_MESSAGES_BY_CONVERSATION_ID, conversation_id)
+        return self.list_messages(self.GET_MESSAGES_BY_CONVERSATION_ID_QUERY, conversation_id)
 
     def list_messages(self, messages, arguments):
         conn = self.build_connection()
@@ -52,14 +52,14 @@ class MessageRepository:
     def delete_all(self):
         conn = self.build_connection()
         cursor = conn.cursor()
-        cursor.execute(self.DELETE_ALL)
+        cursor.execute(self.DELETE_ALL_QUERY)
         conn.commit()
         conn.close()
 
     def delete_by_conversation_id(self, conversation_id):
         conn = self.build_connection()
         cursor = conn.cursor()
-        cursor.execute(self.DELETE_MESSAGES_BY_CONVERSATION_ID, (conversation_id,))
+        cursor.execute(self.DELETE_MESSAGES_BY_CONVERSATION_ID_QUERY, (conversation_id,))
         conn.commit()
         conn.close()
 
