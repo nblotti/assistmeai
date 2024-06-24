@@ -5,10 +5,10 @@ from pydantic import BaseModel
 
 
 class Conversation(BaseModel):
-    id:  Optional[str] = None
+    id:  Optional[int] = None
     perimeter: str
     description: Optional[str] = "New conversation"
-    pdf_id: Optional[str] = ""
+    pdf_id: Optional[int] = ""
     pdf_name: Optional[str] = ""
     created_on:  Optional[str] = None
 

@@ -8,12 +8,9 @@ from langchain_core.documents import Document
 from langchain_core.retrievers import BaseRetriever
 from langchain_community.vectorstores import Pinecone
 
+from embeddings.EmbeddingsTools import QueryType
 from vector_stores.pinecone import vector_store
 
-
-class QueryType(Enum):
-    DOCUMENT = 1
-    PERIMETER = 2
 
 
 class CustomPineconeRetriever(BaseRetriever):

@@ -1,4 +1,3 @@
-
 from datetime import date
 
 from fastapi import FastAPI
@@ -9,16 +8,14 @@ from chat.ChatController import chat_ai
 from conversation.ConversationController import conversation_router
 from document.DocumentsController import router_file
 from message.MessageController import message_router
-from pms.PmsController import pms_ai
-from web.CommandAPIController import router_aicommand
+from rights.CategoryController import router_category
+from rights.UserController import router_user
 
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, document, tool windows, actions, and settings.
 
 
 config.load_config()
-
-
 
 app = FastAPI()
 
@@ -32,12 +29,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(router_aicommand)
 app.include_router(chat_ai)
 app.include_router(router_file)
 app.include_router(conversation_router)
 app.include_router(message_router)
-app.include_router(pms_ai)
+app.include_router(router_user)
+app.include_router(router_category)
+
 
 @app.get("/ping")
 async def ping():

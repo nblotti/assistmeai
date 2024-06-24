@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
@@ -25,4 +26,5 @@ class Message:
         elif self.role == "system":
             return SystemMessage(content=self.content)
         else:
+            logging.error(self.role)
             raise ValueError(f"Unknown message role: {self.role}")

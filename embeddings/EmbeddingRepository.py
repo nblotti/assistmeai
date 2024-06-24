@@ -1,10 +1,9 @@
-import os
 import uuid
 
 from langchain_community.document_loaders.pdf import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from vector_stores.pinecone import vector_store, pc
+from vector_stores.postgres import vector_store
 
 
 class EmbeddingRepository:
@@ -17,27 +16,23 @@ class EmbeddingRepository:
     def create_embeddings_for_pdf(self, blob_id, perimeter, embeddings_file, file_name):
         loader = PyPDFLoader(embeddings_file)
         docs = loader.load_and_split(self.text_splitter)
-        ids = []
         for doc in docs:
             doc.metadata = {
+                "id": str(uuid.uuid4()),
                 "file_name": file_name,
                 "blob_id": blob_id,
                 "perimeter": perimeter,
                 "text": doc.page_content,
                 "page": doc.metadata["page"]
             }
-            ids.append(blob_id + "#" + str(uuid.uuid4()))
+
         vector_store.add_documents(
             documents=docs,
-            ids=ids)
+            ids=[doc.metadata["id"] for doc in docs])
 
     def delete_embeddings_by_file_id(self, blob_id):
-        index_name = os.getenv("PINECONE_INDEX_NAME")
-        index = pc.Index(index_name)
-        for ids in index.list(prefix=blob_id + '#'):
-            index.delete(ids=ids)
+        vector_store.delete(blob_id)
 
     def delete_all_embeddings(self):
-        index_name = os.getenv("PINECONE_INDEX_NAME")
-        index = pc.Index(index_name)
-        index.delete(delete_all=True)
+        vector_store.delete_collection()
+        vector_store.drop_tables()

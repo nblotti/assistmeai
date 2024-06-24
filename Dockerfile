@@ -15,8 +15,9 @@ ENV DB_PASSWORD postgres
 COPY requirements.txt /app/requirements.txt
 
 RUN pip install --upgrade pip
+RUN pip install "psycopg[binary,pool]"
 RUN apk update && \
- apk add --no-cache python3 postgresql-libs && \
+ apk add --no-cache python3 postgresql-libs postgresql-client && \
  apk add --no-cache --virtual .build-deps gcc python3-dev musl-dev postgresql-dev && \
  python3 -m pip install -r requirements.txt --no-cache-dir && \
  apk --purge del .build-deps

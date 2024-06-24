@@ -53,7 +53,7 @@ async def conversation(conversation_repository: conversation_repository_dep,
                        document_repository: document_repository_dep, new_conversation: Conversation):
     res = conversation_repository.save(new_conversation)
 
-    if res.pdf_id != "":
+    if res.pdf_id != 0:
         doc = document_repository.get_by_id(res.pdf_id)
         res.pdf_name = doc[0]
 

@@ -1,11 +1,11 @@
 from chat.ChatManager import ChatManager
-from config import db_name, db_host, db_port, db_user, db_password
 
 from conversation.ConversationRepository import ConversationRepository
 from document.DocumentsRepository import DocumentsRepository
 from embeddings.EmbeddingRepository import EmbeddingRepository
 from message.MessageRepository import MessageRepository
-
+from rights.CategoryRepository import CategoryRepository
+from rights.UserRepository import UserRepository
 
 
 class EmbeddingRepositoryProvider:
@@ -14,75 +14,20 @@ class EmbeddingRepositoryProvider:
 
 
 class DocumentDAOProvider:
-    db_name: str
-    db_host: str
-    db_port: str
-    db_user: str
-    db_password: str
-
-    def __init__(self, db_name: str, db_host: str, db_port: str, db_user: str, db_password: str):
-        self.db_name = db_name
-        self.db_host = db_host
-        self.db_port = db_port
-        self.db_user = db_user
-        self.db_password = db_password
 
     def get_dependency(self):
-        return DocumentsRepository(
-            db_name=self.db_name,
-            db_host=self.db_host,
-            db_port=self.db_port,
-            db_user=self.db_user,
-            db_password=self.db_password
-        )
+        return DocumentsRepository()
 
 
 class ConversationDAOProvider:
-    db_name: str
-    db_host: str
-    db_port: str
-    db_user: str
-    db_password: str
-
-    def __init__(self, db_name: str, db_host: str, db_port: str, db_user: str, db_password: str):
-        self.db_name = db_name
-        self.db_host = db_host
-        self.db_port = db_port
-        self.db_user = db_user
-        self.db_password = db_password
-
     def get_dependency(self):
-        return ConversationRepository(
-            db_name=self.db_name,
-            db_host=self.db_host,
-            db_port=self.db_port,
-            db_user=self.db_user,
-            db_password=self.db_password
-        )
+        return ConversationRepository()
 
 
 class MessageDAOProvider:
-    db_name: str
-    db_host: str
-    db_port: str
-    db_user: str
-    db_password: str
-
-    def __init__(self, db_name: str, db_host: str, db_port: str, db_user: str, db_password: str):
-        self.db_name = db_name
-        self.db_host = db_host
-        self.db_port = db_port
-        self.db_user = db_user
-        self.db_password = db_password
 
     def get_dependency(self):
-        return MessageRepository(
-            db_name=self.db_name,
-            db_host=self.db_host,
-            db_port=self.db_port,
-            db_user=self.db_user,
-            db_password=self.db_password
-        )
+        return MessageRepository()
 
 
 class ChatManagerProvider:
@@ -90,24 +35,20 @@ class ChatManagerProvider:
         return ChatManager()
 
 
-document_dao_provider = DocumentDAOProvider(
-    db_name=db_name,
-    db_host=db_host,
-    db_port=db_port,
-    db_user=db_user,
-    db_password=db_password
-)
-conversation_dao_provider = ConversationDAOProvider(
-    db_name=db_name,
-    db_host=db_host,
-    db_port=db_port,
-    db_user=db_user,
-    db_password=db_password
-)
-message_dao_provider = MessageDAOProvider(
-    db_name=db_name,
-    db_host=db_host,
-    db_port=db_port,
-    db_user=db_user,
-    db_password=db_password
-)
+class CategoryDAOProvider:
+
+    def get_dependency(self):
+        return CategoryRepository()
+
+
+class UserDAOProvider:
+
+    def get_dependency(self):
+        return UserRepository()
+
+
+document_dao_provider = DocumentDAOProvider()
+conversation_dao_provider = ConversationDAOProvider()
+message_dao_provider = MessageDAOProvider()
+category_dao_provider = CategoryDAOProvider()
+user_dao_provider = UserDAOProvider()

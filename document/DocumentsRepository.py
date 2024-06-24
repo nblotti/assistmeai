@@ -1,3 +1,5 @@
+import os
+
 from psycopg2 import connect, Binary
 
 
@@ -18,12 +20,12 @@ class DocumentsRepository:
     db_user: str
     db_password: str
 
-    def __init__(self, db_name: str, db_host: str, db_port: str, db_user: str, db_password: str):
-        self.db_name = db_name
-        self.db_host = db_host
-        self.db_port = db_port
-        self.db_user = db_user
-        self.db_password = db_password
+    def __init__(self, ):
+        self.db_name = os.getenv("DB_NAME")
+        self.db_host = os.getenv("DB_HOST")
+        self.db_port = os.getenv("DB_PORT")
+        self.db_user = os.getenv("DB_USER")
+        self.db_password = os.getenv("DB_PASSWORD")
 
 
     # Function to store blob data in SQLite

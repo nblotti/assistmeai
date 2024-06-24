@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 from langchain_core.messages import BaseMessage
@@ -8,7 +9,7 @@ from message.Message import Message
 
 class MessageRepository:
     INSERT_MESSAGE_QUERY = "INSERT INTO message (conversation_id,role, content,created_on) VALUES (%s, %s, %s,%s )"
-    GET_MESSAGES_BY_CONVERSATION_ID_QUERY = "SELECT * from message where conversation_id=%s"
+    GET_MESSAGES_BY_CONVERSATION_ID_QUERY = "SELECT id, conversation_id,role,content,created_on from message where conversation_id=%s"
     DELETE_MESSAGES_BY_CONVERSATION_ID_QUERY = "DELETE FROM message where conversation_id=%s"
     DELETE_ALL_QUERY = "DELETE FROM message"
 
@@ -18,14 +19,14 @@ class MessageRepository:
     db_user: str
     db_password: str
 
-    def __init__(self, db_name: str, db_host: str, db_port: str, db_user: str, db_password: str):
-        self.db_name = db_name
-        self.db_host = db_host
-        self.db_port = db_port
-        self.db_user = db_user
-        self.db_password = db_password
+    def __init__(self):
+        self.db_name = os.getenv("DB_NAME")
+        self.db_host = os.getenv("DB_HOST")
+        self.db_port = os.getenv("DB_PORT")
+        self.db_user = os.getenv("DB_USER")
+        self.db_password = os.getenv("DB_PASSWORD")
 
-    # Function to store a message data in SQLite
+        # Function to store a message data in SQLite
     def save(self, conversation_id, message: BaseMessage):
         conn = self.build_connection()
         cursor = conn.cursor()
@@ -46,7 +47,7 @@ class MessageRepository:
 
         returned: list[BaseMessage] = []
         for row in result:
-            returned.append(Message(row[0],row[4], row[1], row[2], row[3]).as_lc_message())
+            returned.append(Message(row[0],row[1], row[2], row[3], row[4]).as_lc_message())
         return returned if returned else []
 
     def delete_all(self):

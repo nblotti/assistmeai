@@ -1,11 +1,13 @@
+import os
+
 from psycopg2 import connect
 
 from conversation.Conversation import Conversation
 
 
 class ConversationRepository:
-    INSERT_DOCUMENT_CONVERSATION_QUERY = "INSERT INTO conversation (document_id, perimeter) VALUES (%s, %s) RETURNING id, created_on;"
-    INSERT_STANDALONE_CONVERSATION_QUERY = "INSERT INTO conversation ( perimeter) VALUES (%s) RETURNING id, created_on;"
+    INSERT_DOCUMENT_CONVERSATION_QUERY = """INSERT INTO conversation (document_id, perimeter) VALUES (%s, %s) RETURNING id, created_on;"""
+    INSERT_STANDALONE_CONVERSATION_QUERY = """INSERT INTO conversation (perimeter) VALUES (%s) RETURNING id, created_on;"""
 
     GET_CONVERSATION_BY_PERIMETER_QUERY = """SELECT c.id,c.perimeter, c.description, c.document_id, 
     COALESCE(p.name, '') AS document_name, c.created_on FROM conversation c 
@@ -32,23 +34,22 @@ class ConversationRepository:
     db_user: str
     db_password: str
 
-    def __init__(self, db_name: str, db_host: str, db_port: str, db_user: str, db_password: str):
-        self.db_name = db_name
-        self.db_host = db_host
-        self.db_port = db_port
-        self.db_user = db_user
-        self.db_password = db_password
+    def __init__(self):
+        self.db_name = os.getenv("DB_NAME")
+        self.db_host = os.getenv("DB_HOST")
+        self.db_port = os.getenv("DB_PORT")
+        self.db_user = os.getenv("DB_USER")
+        self.db_password = os.getenv("DB_PASSWORD")
 
-    # Function to store a message data in SQLite
+        # Function to store a message data in SQLite
     def save(self, conversation: Conversation):
         conn = self.build_connection()
         cursor = conn.cursor()
-        if conversation.pdf_id is not None and len(conversation.pdf_id) != 0:
+        if conversation.pdf_id is not None and conversation.pdf_id != 0:
             cursor.execute(self.INSERT_DOCUMENT_CONVERSATION_QUERY,
                            (conversation.pdf_id, conversation.perimeter))
         else:
-            cursor.execute(self.INSERT_STANDALONE_CONVERSATION_QUERY,
-                           conversation.perimeter)
+            cursor.execute(self.INSERT_STANDALONE_CONVERSATION_QUERY, (conversation.perimeter,))
 
         row = cursor.fetchone()
         conversation.id = row[0]

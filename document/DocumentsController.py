@@ -70,6 +70,7 @@ async def delete_all(
 ):
     documents_repository.delete_all()
     embedding_repository.delete_all_embeddings()
+
     return Response(status_code=200)
 
 
