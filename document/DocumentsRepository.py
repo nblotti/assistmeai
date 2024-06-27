@@ -8,7 +8,7 @@ class DocumentsRepository:
 
     SELECT_DOCUMENT_QUERY = """SELECT name, document , created_on FROM document WHERE id=%s """
 
-    LIST_PDF_QUERY = """SELECT id, name, perimeter , created_on FROM document"""
+    LIST_PDF_QUERY_BY_USER = """SELECT id, name, perimeter , created_on FROM document where perimeter=%s"""
 
     DELETE_PDF_QUERY = """DELETE FROM document WHERE id = %s"""
 
@@ -50,11 +50,12 @@ class DocumentsRepository:
         conn.close()
         return result if result else None
 
-    def list(self) -> str:
+    def list(self,user) -> str:
         """List all documents"""
         conn = self.build_connection()
         cursor = conn.cursor()
-        cursor.execute(self.LIST_PDF_QUERY)
+
+        cursor.execute(self.LIST_PDF_QUERY_BY_USER, (user,))
         result = cursor.fetchall()
         conn.close()
         return result

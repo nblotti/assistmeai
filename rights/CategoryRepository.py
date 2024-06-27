@@ -1,5 +1,5 @@
 import os
-from typing import Any
+from typing import Any, List, Tuple
 
 from psycopg2 import connect
 
@@ -8,17 +8,19 @@ class CategoryRepository:
     INSERT_CATEGORY_QUERY = """INSERT INTO document_category (category_name)  VALUES ( %s) RETURNING 
     id;"""
 
-    SELECT_CATEGORY_QUERY = """SELECT  id,category_name FROM document_category WHERE id=%s """
+    #SELECT_CATEGORY_QUERY = """SELECT  id,category_name FROM document_category WHERE id=%s """
 
-    LIST_CATEGORY_QUERY = """SELECT  id, category_name FROM document_category"""
+    #LIST_CATEGORY_QUERY = """SELECT  id, category_name FROM document_category"""
 
-    LIST_CATEGORY_BY_NAME_QUERY = """SELECT  id, category_name FROM document_category where category_name=%s"""
+    #LIST_CATEGORY_BY_NAME_QUERY = """SELECT  id, category_name FROM document_category where category_name=%s"""
 
-    LIST_CATEGORY_BY_IDS = "SELECT  id, category_name FROM document_category where id  IN ({})"
+    #LIST_CATEGORY_BY_IDS = "SELECT  id, category_name FROM document_category where id  IN ({})"
 
     DELETE_CATEGORY_QUERY = """DELETE FROM document_category WHERE  id = %s"""
 
     DELETE_ALL_CATEGORY = """DELETE FROM document_category"""
+
+    LIST_ALL_CATEGORY_BY_IDS = """SELECT group_id, category_id, category_name FROM category_by_group WHERE group_id = ANY(%s::text[])"""
 
     db_name: str
     db_host: str
@@ -45,45 +47,22 @@ class CategoryRepository:
 
         return str(generated_id)
 
-    # Function to retrieve blob data from SQLite
-    def get_by_ids(self, category_ids):
+
+
+    def list_by_group_ids(self, group_ids: List[Any]) -> List[Tuple[Any, ...]]:
+        """List all documents for the given group IDs"""
+        if not group_ids:
+            return []
+
         conn = self.build_connection()
         cursor = conn.cursor()
-        placeholders = ','.join(['%s'] * len(category_ids))
-        # Construct the SQL query with the correct placeholders
-        query = self.LIST_CATEGORY_BY_IDS.format(placeholders)
-
-        # Execute the query with the list of group_ids as parameters
-        cursor.execute(query, tuple(category_ids))
+        cursor.execute(self.LIST_ALL_CATEGORY_BY_IDS, (group_ids,))
         result = cursor.fetchall()
         conn.close()
-        return result if result else None
 
-    def get_by_id(self, category_id):
-        conn = self.build_connection()
-        cursor = conn.cursor()
-        cursor.execute(self.SELECT_CATEGORY_QUERY, category_id)
-        result = cursor.fetchone()
-        conn.close()
-        return result if result else None
-
-    def list(self) -> list[tuple[Any, ...]]:
-        """List all documents"""
-        conn = self.build_connection()
-        cursor = conn.cursor()
-        cursor.execute(self.LIST_CATEGORY_QUERY)
-        result = cursor.fetchall()
-        conn.close()
         return result
 
-    def list_by_name(self, name: str) -> tuple[Any, ...]:
-        """List all documents"""
-        conn = self.build_connection()
-        cursor = conn.cursor()
-        cursor.execute(self.LIST_CATEGORY_BY_NAME_QUERY, [name])
-        result = cursor.fetchone()
-        conn.close()
-        return result
+
 
     def delete_by_id(self, category_id: str):
         conn = self.build_connection()

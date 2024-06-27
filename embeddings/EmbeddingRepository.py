@@ -1,3 +1,4 @@
+import os
 import uuid
 
 from langchain_community.document_loaders.pdf import PyPDFLoader
@@ -29,9 +30,6 @@ class EmbeddingRepository:
         vector_store.add_documents(
             documents=docs,
             ids=[doc.metadata["id"] for doc in docs])
-
-    def delete_embeddings_by_file_id(self, blob_id):
-        vector_store.delete(blob_id)
 
     def delete_all_embeddings(self):
         vector_store.delete_collection()

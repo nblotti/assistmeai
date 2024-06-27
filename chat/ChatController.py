@@ -14,7 +14,7 @@ from embeddings.CustomAzurePGVectorRetriever import CustomAzurePGVectorRetriever
 from embeddings.EmbeddingsTools import QueryType
 from memories.SqlMessageHistory import build_document_memory
 from message.MessageRepository import MessageRepository
-from vector_stores.postgres import build_specific_document_retriever, build_all_documents_retriever
+
 
 chat_ai = APIRouter(
     prefix="/chat",

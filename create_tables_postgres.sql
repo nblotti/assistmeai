@@ -1,4 +1,3 @@
-
 CREATE TABLE document
 (
     id          SERIAL PRIMARY KEY,
@@ -25,7 +24,7 @@ CREATE TABLE conversation
 (
     id          SERIAL PRIMARY KEY, -- SERIAL is equivalent to AUTO_INCREMENT in MySQL
     perimeter   VARCHAR(255),
-    document_id numeric DEFAULT 0,
+    document_id numeric      DEFAULT 0,
     description VARCHAR(255) DEFAULT 'New chat',
     created_on  TIMESTAMP    DEFAULT TO_TIMESTAMP(TO_CHAR(CURRENT_TIMESTAMP, 'DD.MM.YYYY'), 'DD.MM.YYYY')
 );
@@ -52,7 +51,7 @@ EXECUTE FUNCTION delete_related_conversations();
 
 CREATE TABLE document_category
 (
-    id           SERIAL PRIMARY KEY, -- SERIAL is equivalent to AUTO_INCREMENT in MySQL
+    id            SERIAL PRIMARY KEY, -- SERIAL is equivalent to AUTO_INCREMENT in MySQL
     category_name TEXT UNIQUE
 );
 
@@ -67,3 +66,32 @@ CREATE TABLE user_groups
     UNIQUE (group_id, category_id),
     FOREIGN KEY (category_id) REFERENCES document_category (id) ON DELETE CASCADE
 );
+
+create view category_by_group as
+select ug.group_id, ug.category_id, dc.category_name
+from user_groups ug,
+     document_category dc
+where ug.category_id = dc.id;
+
+------------------------------------------------------------------------------------------------------------------------
+-- after first run
+
+CREATE INDEX ON langchain_pg_embedding USING ivfflat (embedding) WITH (lists = 100);
+
+CREATE OR REPLACE FUNCTION delete_related_entries()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Delete rows from langchain_pg_embedding where cmetadata->>'blob_id' matches the deleted blob_id
+    DELETE FROM langchain_pg_embedding
+    WHERE cmetadata->>'blob_id' = OLD.id::text;
+
+    -- Return the OLD row (standard for AFTER DELETE triggers)
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Step 2: Create the trigger
+CREATE TRIGGER after_delete_trigger
+AFTER DELETE ON document
+FOR EACH ROW
+EXECUTE FUNCTION delete_related_entries();

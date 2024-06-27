@@ -20,19 +20,6 @@ vector_store = PGVector.from_existing_index(
 
 
 
-def build_specific_document_retriever(blob_id: str):
-    retriever = vector_store.as_retriever(
-        search_kwargs={
-
-            'filter': {
-                'cmetadata->>blob_id': blob_id  # Extract blob_id as text and filter by it
-            }
-        }
-    )
-    print( retriever.search_kwargs)
-    return retriever
-
-
 def build_all_documents_retriever(perimeter: str):
     # Create a filter dictionary with appropriate format
     filter_criteria = {

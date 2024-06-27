@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Annotated
+from typing import Annotated, Optional
 
 from fastapi import UploadFile, File, APIRouter, Form, Depends
 from starlette.responses import StreamingResponse, Response
@@ -56,9 +56,7 @@ def delete_temporary_disk_file(file_path):
 @router_file.delete("/{blob_id}/")
 def delete(
         documents_repository: document_repository_dep,
-        embedding_repository: embeddings_repository_dep,
         blob_id: str):
-    embedding_repository.delete_embeddings_by_file_id(blob_id)
     documents_repository.delete_by_id(blob_id)
     return Response(status_code=200)
 
@@ -75,8 +73,11 @@ async def delete_all(
 
 
 @router_file.get("/")
-async def list_document(documents_repository: document_repository_dep):
-    return json.loads(json.dumps(documents_repository.list(), cls=CustomEncoder))
+async def list_document(documents_repository: document_repository_dep, user: Optional[str] = None):
+
+    if user is None:
+        return Response(status_code=404)
+    return json.loads(json.dumps(documents_repository.list(user), cls=CustomEncoder))
 
 
 @router_file.get("/{blob_id}/")
