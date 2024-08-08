@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: assistmai
+  name: assistmai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: assistmai
+  template:
+    metadata:
+      labels:
+        app: assistmai
+    spec:
+      containers:
+      - image: nblotti/assistmeai
+        name: chat
+        resources:
+          limits:
+            memory: 500Mi
+        ports:
+        - containerPort: 8080
+          name: http
+      automountServiceAccountToken: false
+      restartPolicy: Always
+      imagePullSecrets:
+        - name: regcred
