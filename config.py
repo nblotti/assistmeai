@@ -23,7 +23,7 @@ os.environ["AZURE_GPT_4_CHAT_DEPLOYMENT_NAME"] = ""
 os.environ["AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT_NAME"] = ""
 os.environ["AZURE_OPENAI_EMBEDDINGS_API_VERSION"] = ""
 
-os.environ["POSTGRES_INDEX_NAME"] = "AZQORE_CHAT"
+os.environ["POSTGRES_INDEX_NAME"] = "ASSISTMEAI_INDEX"
 os.environ[
     "PGVECTOR_CONNECTION_STRING"] = f"postgresql+psycopg://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME_RAG')}?sslmode=require"
 
