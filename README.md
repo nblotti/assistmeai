@@ -156,7 +156,7 @@ docker build -t assistmeai-test .
 ```
 - Once the image is built, you can run it with:
 ```
-docker run --network my_network -d -p 8080:8080 assistmeai-test 
+docker run --network my_network -d -p 8080:8080 --name assistmeai-test -d assistmeai-test
 ```
 **Test it**
 
