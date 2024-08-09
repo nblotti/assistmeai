@@ -23,3 +23,6 @@ class CustomAzurePGVectorRetriever(BaseRetriever):
 
     def _get_relevant_documents(self, query: str, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
         return vector_store.similarity_search(query=query, filter=self.filter)
+
+    def _aget_relevant_documents(self, query: str, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
+        return vector_store.similarity_search(query=query, filter=self.filter)

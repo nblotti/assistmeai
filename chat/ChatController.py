@@ -49,7 +49,7 @@ async def message(message_repository: message_repository_dep, conversation_repos
     if rag_retriever:
         chain = RetrievalQA.from_chain_type(
             llm=chat_gpt_35,
-            verbose=True,
+            #verbose=True,
             retriever=rag_retriever,
             return_source_documents=True,
             output_key="result",
@@ -59,7 +59,7 @@ async def message(message_repository: message_repository_dep, conversation_repos
     # Invoke the chain with the command/query
     try:
         result = chain.invoke({"query": command})
-        print(result)  # Or whatever logging mechanism you prefer
+        #print(result)  # Or whatever logging mechanism you prefer
     except Exception as e:
         print(f"Error occurred: {e}")
         raise
@@ -86,7 +86,7 @@ async def message(conversation_repository: conversation_repository_dep, command:
 
     chain = RetrievalQA.from_chain_type(
         llm=chat_gpt_35,
-        verbose=True,
+        #verbose=True,
         retriever=rag_retriever,
         return_source_documents=True,
     )

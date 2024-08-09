@@ -1,6 +1,8 @@
 from datetime import date
 from http.client import HTTPException
 from typing import Optional
+
+from langchain.globals import set_verbose
 from starlette.responses import Response
 import jwt
 from fastapi import FastAPI, Request
@@ -26,7 +28,6 @@ app = FastAPI()
 
 origins = ["*"]
 
-
 class NoCacheMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
@@ -50,7 +51,6 @@ class BearerTokenMiddleware(BaseHTTPMiddleware):
                 response = await call_next(request)
 
             else:
-                print("Error: Invalid token")
                 #response = Response(content=f"Error: Invalid token", status_code=401)
                 response = await call_next(request)
         else:
@@ -62,13 +62,13 @@ class BearerTokenMiddleware(BaseHTTPMiddleware):
     def verify_token(self, token: str) -> bool:
         try:
             decoded_payload = jwt.decode(jwt=token, key=config.jwt_secret_key, algorithms=[config.jwt_algorithm])
-            print("Decoded payload:", decoded_payload)
+            print("JWT  token is valid : decoded payload:", decoded_payload)
             return True
         except ExpiredSignatureError:
-            print("Token has expired")
+            print("JWT Token has expired")
             return False
         except InvalidTokenError:
-            print("Token is invalid")
+            print("JWT Token is invalid")
             return False
 
 
@@ -83,7 +83,7 @@ app.add_middleware(
     NoCacheMiddleware)
 
 #only logging for now
-#app.add_middleware(BearerTokenMiddleware)
+app.add_middleware(BearerTokenMiddleware)
 
 app.include_router(chat_ai)
 app.include_router(router_file)

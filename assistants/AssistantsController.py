@@ -51,7 +51,7 @@ async def message(message_repository: message_repository_dep, conversation_repos
     chain = LLMChain(
         prompt=prompt,
         llm=local_chat,
-        verbose=True,
+        #verbose=True,
         memory=memory,
         output_key="result"
     )
