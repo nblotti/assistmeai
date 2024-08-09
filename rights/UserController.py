@@ -3,12 +3,13 @@ from typing import Annotated, Optional, List
 
 import jwt
 from fastapi import APIRouter, Depends, Body, Query, Request
+from jwt import ExpiredSignatureError, InvalidTokenError
 from ldap3 import Server, Connection, ALL, SUBTREE, SIMPLE
 from starlette.responses import Response
 
 from CustomEncoder import CustomEncoder
 from DependencyManager import user_dao_provider, category_dao_provider
-from config import jwt_secret_key, jwt_algorithm, ldap_url, ldap_password
+from config import jwt_secret_key, jwt_algorithm, ldap_url, ldap_password, ldap_base_dn
 from rights.CategoryRepository import CategoryRepository
 from rights.UserRepository import UserRepository
 
@@ -31,7 +32,7 @@ async def do_login(user_repository: user_repository_dep, category_repository: ca
     # Convert the payload dictionary to a pretty-printed JSON string
     pretty_json = json.dumps(payload, indent=4)
     # Print the formatted JSON to the console
-    print(pretty_json)
+    #print(pretty_json)
 
     user = payload["info"]["sub"]
 
@@ -43,6 +44,10 @@ async def do_login(user_repository: user_repository_dep, category_repository: ca
             "categories": categories,
             "jwt": create_jwt_token(payload)}
 
+@router_user.get("/validate")
+async def validate():
+    #for test only
+    pass
 
 @router_user.get("/")
 async def get_all_categories_for_ids(user_repository: user_repository_dep, category_repository: category_repository_dep,
@@ -91,34 +96,48 @@ def create_jwt_token(login_info):
     return token
 
 
-def get_groups(user_repository: user_repository_dep, login_info):
+def get_groups(user_repository, login_info):
+    try:
+        # Ensure all are strings
+        if not all(isinstance(arg, str) for arg in [ldap_url, ldap_base_dn, ldap_password]):
+            raise ValueError("ldap_url, ldap_base_dn, and ldap_password must all be strings.")
 
-    base_dn = "dc=foo,dc=com"
-    search_filter = f"(member=cn={login_info["info"]["sub"]},ou=users,dc=foo,dc=com)"
-    search_attributes = ['cn']
+        # Define the search filter
+        search_filter = f"(member=cn={login_info["info"]["sub"]},ou=users,{ldap_base_dn})"
+        search_attributes = ['cn']
 
-    # Setup the server and the connection
-    server = Server(ldap_url, get_info=ALL)
-    conn = Connection(
-        server=server,
-        user="cn=admin,dc=foo,dc=com",
-        password=ldap_password,
-        raise_exceptions=True,
-        authentication=SIMPLE,
-    )
-    conn.bind()
+        # Setup the server and the connection
+        server = Server(ldap_url, get_info=ALL)
+        conn = Connection(server=server,
+                          user=f"cn=admin,{ldap_base_dn}",
+                          password=ldap_password,
+                          raise_exceptions=True,
+                          authentication='SIMPLE')  # Use SIMPLE for simple binding
 
+        # Bind to the server
+        if not conn.bind():
+            raise Exception(f"Failed to bind to server: {conn.result}")
 
-    # Perform the search
-    conn.search(search_base=base_dn, search_filter=search_filter, search_scope=SUBTREE, attributes=search_attributes)
+        # Perform the search
+        conn.search(search_base=ldap_base_dn,
+                    search_filter=search_filter,
+                    search_scope=SUBTREE,
+                    attributes=search_attributes)
 
-    cn_list = []
+        cn_list = []
 
-    # Print the results
-    for entry in conn.entries:
-        cn_list.append(entry.cn.value)
+        # Collect the results
+        for entry in conn.entries:
+            cn_list.append(entry.cn.value)
 
-    return cn_list
+        # Make sure to unbind the connection after using it.
+        conn.unbind()
+
+        return cn_list
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return []
 
 
 def get_categories(category_repository: category_repository_dep, groups, user):
