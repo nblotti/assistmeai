@@ -43,7 +43,7 @@ async def validate():
     #for test only
     pass
 
-@router_user.get("/")
+@router_user.get("/categories")
 async def get_all_categories_for_ids(user_repository: user_repository_dep, category_repository: category_repository_dep,
                                      user_ids: Optional[List[int]] = Query(None)):
     results = []
@@ -54,6 +54,12 @@ async def get_all_categories_for_ids(user_repository: user_repository_dep, categ
     category_ids = [result[2] for result in category_ids]
     categories = category_repository.get_by_ids(category_ids)
     return categories
+
+
+@router_user.get("/")
+async def get_all_users():
+    search_filter = "(objectClass=organizationalPerson)"
+    return query_ldap_(search_filter)
 
 
 @router_user.delete("/{user_id}/")
@@ -89,11 +95,6 @@ def create_jwt_token(login_info):
     token = jwt.encode(payload, jwt_secret_key, algorithm=jwt_algorithm)
     return token
 
-
-@router_user.get("/")
-async def get_all_users():
-    search_filter = "(objectClass=organizationalPerson)"
-    return query_ldap_(search_filter)
 
 
 def query_ldap_(list_users):
