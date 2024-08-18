@@ -22,17 +22,30 @@ spec:
             - name: LDAP_ADMIN_USERNAME
               value: admin
             - name: LDAP_ROOT
-              value: dc=foo,dc=com
+              value: dc=azqore,dc=com
             - name: LDAP_ADMIN_DN
-              value: cn=admin,dc=foo,dc=com
+              value: cn=admin,dc=azqore,dc=com
+            - name: LDAP_CUSTOM_LDIF_DIR
+              value: /etc/ldapconfig
+            - name: LDAP_SKIP_DEFAULT_TREE
+              value: "yes"
           image: bitnami/openldap
           name: openldap
           resources:
             limits:
               memory: 500Mi
+          volumeMounts:
+            - mountPath: /etc/ldapconfig
+              name: config-volume
+
           ports:
             - containerPort: 1389
             - containerPort: 1636
+      volumes:
+          - configMap:
+              defaultMode: 420
+              name: my-config
+            name: config-volume
       automountServiceAccountToken: false
       restartPolicy: Always
 
