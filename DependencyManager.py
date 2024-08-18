@@ -8,7 +8,7 @@ from message.MessageRepository import MessageRepository
 from rights.CategoryRepository import CategoryRepository
 from rights.UserRepository import UserRepository
 from sharing.GroupRepository import GroupRepository
-from sharing.ShareRepository import ShareRepository
+from sharing.DocumentShareRepository import DocumentShareRepository
 
 
 class EmbeddingRepositoryProvider:
@@ -62,10 +62,10 @@ class GroupRepositoryDAOProvider:
         return GroupRepository()
 
 
-class ShareRepositoryDAOProvider:
+class DocumentShareRepositoryDAOProvider:
 
     def get_dependency(self):
-        return ShareRepository()
+        return DocumentShareRepository()
 
 
 document_dao_provider = DocumentDAOProvider()
@@ -75,4 +75,4 @@ category_dao_provider = CategoryDAOProvider()
 user_dao_provider = UserDAOProvider()
 assistants_dao_provider = AssistantsDAOProvider()
 group_dao_provider = GroupRepositoryDAOProvider()
-share_dao_provider = ShareRepositoryDAOProvider()
+document_share_dao_provider = DocumentShareRepositoryDAOProvider()

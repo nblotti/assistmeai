@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from datetime import date
 
 
-class Share(BaseModel):
+class DocumentShare(BaseModel):
     id: Optional[int] = None  # Marking 'id' as optional
     group_id: str
     document_id: str

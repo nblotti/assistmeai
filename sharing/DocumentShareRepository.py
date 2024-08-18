@@ -3,7 +3,7 @@ import os
 from psycopg2 import connect
 
 
-class ShareRepository:
+class DocumentShareRepository:
 
     db_name: str
     db_host: str
