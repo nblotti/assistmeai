@@ -9,8 +9,8 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 # PostgreSQL connection details set via environment variables
-os.environ["DB_NAME"] = "rag"
-os.environ["DB_NAME_RAG"] = 'rag'
+os.environ["DB_NAME"] = ""
+os.environ["DB_NAME_RAG"] = ''
 os.environ["DB_HOST"] = ""
 os.environ["DB_PORT"] = ""
 os.environ["DB_USER"] = ""
