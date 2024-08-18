@@ -21,7 +21,7 @@ from document.DocumentsController import router_file
 from message.MessageController import router_message
 from rights.UserController import router_user
 from sharing.GroupController import router_group
-from sharing.DocumentShareController import router_share
+from sharing.DocumentShareController import router_document_share
 
 config.set_verbose(True)
 # CORS origins allowed
@@ -104,4 +104,4 @@ app.include_router(router_message)
 app.include_router(router_user)
 app.include_router(router_assistant)
 app.include_router(router_group)
-app.include_router(router_share)
+app.include_router(router_document_share)
