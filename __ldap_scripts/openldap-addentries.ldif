@@ -1,0 +1,75 @@
+/*
+
+
+ldapdelete -x -H ldap://10.0.161.208:1389 -D "cn=admin,dc=foo,dc=com" -w "adminpassword" "cn=user02,ou=users,dc=foo,dc=com"
+ldapdelete -x -H ldap://10.0.161.208:1389 -D "cn=admin,dc=foo,dc=com" -w "adminpassword" "cn=user01,ou=users,dc=foo,dc=com"
+ldapdelete -x -H ldap://10.0.161.208:1389 -D "cn=admin,dc=foo,dc=com" -w "adminpassword" "cn=readers,ou=users,dc=foo,dc=com"
+
+ sudo ldapsearch -x -H ldap://10.0.161.208:1389 -b "dc=foo,dc=com"
+
+ */vi add_entries.ldif
+
+# fnietzsche, users, foo.com
+dn: cn=fnietzsche,ou=users,dc=foo,dc=com
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+cn: fnietzsche
+sn: User1
+uid: fnietzsche
+uidNumber: 1002
+gidNumber: 1002
+homeDirectory: /home/fnietzsche
+
+# fschopenhauer, users, foo.com
+dn: cn=fschopenhauer,ou=users,dc=foo,dc=com
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+cn: fschopenhauer
+sn: User2
+uid: fschopenhauer
+uidNumber: 1003
+gidNumber: 1003
+homeDirectory: /home/fschopenhauer
+
+# 112940591719564347975, users, foo.com
+dn: cn=112940591719564347975,ou=users,dc=foo,dc=com
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+cn: 112940591719564347975
+sn: User3
+uid: 112940591719564347975
+uidNumber: 1004
+gidNumber: 1004
+homeDirectory: /home/R112940591719564347975
+
+# Create OU for groups
+dn: ou=groups,dc=foo,dc=com
+objectClass: organizationalUnit
+ou: groups
+
+# Create the group agp_prod_users
+dn: cn=agp_prod_users,ou=groups,dc=foo,dc=com
+objectClass: groupOfNames
+cn: agp_prod_users
+member: cn=fnietzsche,ou=users,dc=foo,dc=com
+member: cn=fschopenhauer,ou=users,dc=foo,dc=com
+member: cn=112940591719564347975,ou=users,dc=foo,dc=com
+
+# Create the group agp_prod_admin
+dn: cn=agp_prod_admin,ou=groups,dc=foo,dc=com
+objectClass: groupOfNames
+cn: agp_prod_admin
+member: cn=112940591719564347975,ou=users,dc=foo,dc=com
+
+/* run
+ldapadd -x -H ldap://10.0.161.208:1389   -D "cn=admin,dc=foo,dc=com" -W -f add_entries.ldif
+*/
+
+
+/*run
+sudo ldapsearch -x -H ldap://10.0.161.208:1389 -b "dc=foo,dc=com" "(member=cn=fnietzsche,ou=users,dc=foo,dc=com)" dn
+*/
+

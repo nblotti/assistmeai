@@ -1,5 +1,0 @@
-ldapmodify -x -H ldap://127.0.0.1:1389 -D "cn=admin,dc=foo,dc=com" -W -f openldap-removeuser.ldif
-dn: cn=agp_prod_admin,ou=groups,dc=foo,dc=com
-changetype: modify
-delete: member
-member: cn=fnietzsche,ou=users,dc=foo,dc=com
