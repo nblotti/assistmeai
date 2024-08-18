@@ -1,3 +1,4 @@
+from config import SessionLocal
 from assistants.AssistantsRepository import AssistantsRepository
 from chat.ChatManager import ChatManager
 
@@ -7,6 +8,7 @@ from embeddings.EmbeddingRepository import EmbeddingRepository
 from message.MessageRepository import MessageRepository
 from rights.CategoryRepository import CategoryRepository
 from rights.UserRepository import UserRepository
+from sharing.GroupRepository import GroupRepository
 
 
 class EmbeddingRepositoryProvider:
@@ -54,10 +56,16 @@ class AssistantsDAOProvider:
         return AssistantsRepository()
 
 
+class GroupRepositoryDAOProvider:
+
+    def get_dependency(self):
+        return GroupRepository()
+
+
 document_dao_provider = DocumentDAOProvider()
 conversation_dao_provider = ConversationDAOProvider()
 message_dao_provider = MessageDAOProvider()
 category_dao_provider = CategoryDAOProvider()
 user_dao_provider = UserDAOProvider()
-
 assistants_dao_provider = AssistantsDAOProvider()
+group_dao_provider = GroupRepositoryDAOProvider()
