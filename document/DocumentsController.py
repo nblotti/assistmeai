@@ -3,12 +3,13 @@ import os
 from typing import Annotated, Optional
 
 from fastapi import UploadFile, File, APIRouter, Form, Depends
-from starlette.responses import StreamingResponse, Response
+from starlette.responses import StreamingResponse, Response, JSONResponse
 
 from CustomEncoder import CustomEncoder
 from DependencyManager import document_dao_provider
 
 from document.DocumentsRepository import DocumentsRepository
+from document.ShareDocument import ShareDocument
 from embeddings.EmbeddingRepository import EmbeddingRepository
 
 router_file = APIRouter(
@@ -38,6 +39,30 @@ async def upload_file(documents_repository: document_repository_dep,
     delete_temporary_disk_file(temp_file)
 
     return {"filename": file.filename, "blob_id": blob_id}
+
+
+@router_file.post("/setnewperimeter",response_model=ShareDocument)
+async def share_file(share_document_dto: ShareDocument,
+                     documents_repository: document_repository_dep,
+                     embedding_repository: embeddings_repository_dep
+                     ):
+    blob_id = share_document_dto.document_id
+
+    document = documents_repository.get_by_id(blob_id)
+
+    name = document[0]
+    content = document[1]
+    old_perimeter = document[2]
+    new_perimeter = f"{share_document_dto.perimeter_added}  {old_perimeter}"
+
+    temp_file = "./" + blob_id + ".document"
+    with open(temp_file, "wb") as file_w:
+        file_w.write(content)
+
+    documents_repository.delete_embeddings_by_id(blob_id)
+    embedding_repository.create_embeddings_for_pdf(blob_id, new_perimeter, temp_file, name)
+
+    return JSONResponse(content=share_document_dto)
 
 
 '''
@@ -74,7 +99,6 @@ async def delete_all(
 
 @router_file.get("/")
 async def list_document(documents_repository: document_repository_dep, user: Optional[str] = None):
-
     if user is None:
         return Response(status_code=404)
     return json.loads(json.dumps(documents_repository.list(user), cls=CustomEncoder))

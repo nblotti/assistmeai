@@ -25,7 +25,7 @@ from sharing.DocumentShareController import router_document_share
 
 config.set_verbose(True)
 # CORS origins allowed
-origins = ["*"]
+origins = ["http://localhost:4200", "*"]
 
 
 # Middleware to disable caching
@@ -94,7 +94,7 @@ app.add_middleware(
 
 # Custom middleware
 app.add_middleware(NoCacheMiddleware)
-app.add_middleware(BearerTokenMiddleware)
+#app.add_middleware(BearerTokenMiddleware)
 
 # Register routers
 app.include_router(chat_ai)

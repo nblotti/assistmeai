@@ -52,7 +52,7 @@ async def get_all_categories_for_ids(user_repository: user_repository_dep, categ
     category_ids = user_repository.list_by_group(results)
 
     category_ids = [result[2] for result in category_ids]
-    categories = category_repository.get_by_ids(category_ids)
+    categories = category_repository.list_by_group_ids(category_ids)
     return categories
 
 
@@ -77,7 +77,7 @@ async def delete_all(user_repository: user_repository_dep):
 @router_user.put("/")
 async def save(user_repository: user_repository_dep, category_repository: category_repository_dep,
                new_category=Body(...)):
-    category = category_repository.list_by_name(new_category["category_name"])
+    category = category_repository.save(new_category["category_name"])
     if not category:
         return Response(status_code=404)
 
@@ -96,15 +96,13 @@ def create_jwt_token(login_info):
     return token
 
 
-
-def query_ldap_(list_users):
+def query_ldap_(search_filter):
     try:
         # Ensure all are strings
         if not all(isinstance(arg, str) for arg in [ldap_url, ldap_base_dn, ldap_password]):
             raise ValueError("ldap_url, ldap_base_dn, and ldap_password must all be strings.")
 
         # Define the search filter
-        search_filter = "(objectClass=organizationalPerson)"
         search_attributes = ['cn']
 
         # Setup the server and the connection
@@ -162,7 +160,7 @@ def get_categories(category_repository: category_repository_dep, groups, user):
     # category_ids = [result[2] for result in category_ids]
     categories = category_repository.list_by_group_ids(groups)
     # Create the initial dictionary with user and "MyDocuments"
-    initial_entry = (user, 0,"MyDocuments",True)
+    initial_entry = (user, 0, "MyDocuments", True)
 
     # Add the initial dictionary at the beginning of the categories list
     categories.insert(0, initial_entry)
