@@ -22,9 +22,9 @@ spec:
             - name: LDAP_ADMIN_USERNAME
               value: admin
             - name: LDAP_ROOT
-              value: dc=azqore,dc=com
+              value: dc=foo,dc=com
             - name: LDAP_ADMIN_DN
-              value: cn=admin,dc=azqore,dc=com
+              value: cn=admin,dc=foo,dc=com
             - name: LDAP_CUSTOM_LDIF_DIR
               value: /etc/ldapconfig
             - name: LDAP_SKIP_DEFAULT_TREE
