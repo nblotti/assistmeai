@@ -1,0 +1,50 @@
+import logging
+from typing import Annotated, List
+
+from fastapi import APIRouter, Depends
+from starlette import status
+from starlette.responses import JSONResponse
+
+from DependencyManager import shared_group_user_dao_provider
+from sharing.SharedGroup import SharedGroup
+from sharing.SharedGroupUser import SharedGroupUser
+from sharing.SharedGroupUserRepository import SharedGroupUserRepository
+
+# Initialize APIRouter
+router_shared_group_user = APIRouter(
+    prefix="/sharedgroupuser",
+    tags=["sharedgroupuser"],
+    responses={404: {"description": "Not found"}},
+)
+
+shared_group_user_repository_dep = Annotated[
+    SharedGroupUserRepository, Depends(shared_group_user_dao_provider.get_dependency)]
+
+
+@router_shared_group_user.post("/", response_model=SharedGroupUser)
+def create_group(group: SharedGroupUser, shared_group_user_repository: shared_group_user_repository_dep):
+    logging.debug("Creating group: %s", group)
+    db_group = shared_group_user_repository.create(group)
+    return db_group
+
+
+@router_shared_group_user.get("/group/{group_id}/", response_model=List[SharedGroupUser])
+def list_group_by_user_id(group_id: str, shared_group_user_repository: shared_group_user_repository_dep):
+    return shared_group_user_repository.list_by_group_id(group_id)
+
+
+@router_shared_group_user.get("/{id}/", response_model=SharedGroupUser)
+def read_group(id: int, shared_group_user_repository: shared_group_user_repository_dep):
+    logging.debug("Reading group with ID: %s", id)
+    return shared_group_user_repository.read(id)
+
+
+@router_shared_group_user.delete("/{group_id}/")
+def delete_group(group_id: int, shared_group_user_repository: shared_group_user_repository_dep):
+    logging.debug("Deleting group with ID: %s", group_id)
+    db_group = shared_group_user_repository.delete(group_id)
+    logging.debug("Deleted group: %s", db_group)
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": f"Item {group_id} successfully deleted"}
+    )
