@@ -21,7 +21,8 @@ from document.DocumentsController import router_file
 from message.MessageController import router_message
 from rights.UserController import router_user
 from sharing.SharedGroupController import router_group
-from sharing.DocumentShareController import router_document_share
+
+from sharing.SharedGroupDocumentController import router_shared_group_document
 from sharing.SharedGroupUserController import router_shared_group_user
 
 config.set_verbose(True)
@@ -106,4 +107,6 @@ app.include_router(router_user)
 app.include_router(router_assistant)
 app.include_router(router_group)
 app.include_router(router_shared_group_user)
-app.include_router(router_document_share)
+
+app.include_router(router_shared_group_document)
+

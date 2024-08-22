@@ -39,12 +39,12 @@ def read_group(id: int, shared_group_user_repository: shared_group_user_reposito
     return shared_group_user_repository.read(id)
 
 
-@router_shared_group_user.delete("/{group_id}/")
-def delete_group(group_id: int, shared_group_user_repository: shared_group_user_repository_dep):
-    logging.debug("Deleting group with ID: %s", group_id)
-    db_group = shared_group_user_repository.delete(group_id)
+@router_shared_group_user.delete("/{id}/")
+def delete_group(id: int, shared_group_user_repository: shared_group_user_repository_dep):
+    logging.debug("Deleting group with ID: %s", id)
+    db_group = shared_group_user_repository.delete(id)
     logging.debug("Deleted group: %s", db_group)
     return JSONResponse(
         status_code=status.HTTP_200_OK,
-        content={"message": f"Item {group_id} successfully deleted"}
+        content={"message": f"Item {id} successfully deleted"}
     )
