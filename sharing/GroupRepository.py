@@ -12,6 +12,8 @@ class GroupRepository:
 
     DELETE_GROUP_QUERY = """DELETE FROM shared_groups WHERE id = %s"""
 
+    SELECT_GROUP_BY_OWNER_QUERY = """SELECT id,name, owner, creation_date FROM shared_groups WHERE owner=%s """
+
     DELETE_ALL_QUERY = """DELETE FROM shared_groups"""
 
     db_name: str
@@ -76,5 +78,10 @@ class GroupRepository:
         conn.close()
 
     def list_groups_by_owner(self, owner_id):
-        pass
+        conn = self.build_connection()
+        cursor = conn.cursor()
+        cursor.execute(self.SELECT_GROUP_BY_OWNER_QUERY, (owner_id,))
+        result = cursor.fetchall()
+        conn.close()
+        return result if result else []
 

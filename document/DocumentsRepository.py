@@ -51,7 +51,7 @@ class DocumentsRepository:
         conn.close()
         return result if result else None
 
-    def list(self, user) -> str:
+    def list(self, user):
         """List all documents"""
         conn = self.build_connection()
         cursor = conn.cursor()
@@ -74,7 +74,6 @@ class DocumentsRepository:
         cursor.execute(self.DELETE_EMBEDDING_QUERY, (blob_id,))
         conn.commit()
         conn.close()
-
 
     def delete_all(self):
         conn = self.build_connection()

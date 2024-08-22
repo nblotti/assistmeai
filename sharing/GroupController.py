@@ -1,9 +1,11 @@
+import json
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.encoders import jsonable_encoder
 from starlette import status
 from starlette.responses import JSONResponse
 
+from CustomEncoder import CustomEncoder
 from DependencyManager import group_dao_provider
 from sharing.Group import Group
 import logging
@@ -27,11 +29,11 @@ def create_group(group: Group, group_repository: group_repository_dep):
     return db_group
 
 
-@router_group.post("/", response_model=Group)
+@router_group.get("/owner/{owner_id}/")
 def list_group_by_owner(owner_id: str, group_repository: group_repository_dep):
 
     db_groups = group_repository.list_groups_by_owner(owner_id)
-    return db_groups
+    return json.loads(json.dumps(db_groups, cls=CustomEncoder))
 
 
 @router_group.get("/{group_id}/", response_model=Group)

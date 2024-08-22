@@ -59,7 +59,13 @@ async def get_all_categories_for_ids(user_repository: user_repository_dep, categ
 @router_user.get("/")
 async def get_all_users():
     search_filter = "(objectClass=organizationalPerson)"
-    return query_ldap_(search_filter)
+    entries =  query_ldap_(search_filter, ['cn', 'givenName'])
+
+    cn_list = []
+    # Collect the results
+    for entry in entries:
+        cn_list.append({"cn":entry.cn.value,"givenName":entry.givenName.value})
+    return cn_list
 
 
 @router_user.delete("/{user_id}/")
@@ -96,14 +102,13 @@ def create_jwt_token(login_info):
     return token
 
 
-def query_ldap_(search_filter):
+def query_ldap_(search_filter, search_attributes):
     try:
         # Ensure all are strings
         if not all(isinstance(arg, str) for arg in [ldap_url, ldap_base_dn, ldap_password]):
             raise ValueError("ldap_url, ldap_base_dn, and ldap_password must all be strings.")
 
-        # Define the search filter
-        search_attributes = ['cn']
+
 
         # Setup the server and the connection
         server = Server(ldap_url, get_info=ALL)
@@ -123,16 +128,14 @@ def query_ldap_(search_filter):
                     search_scope=SUBTREE,
                     attributes=search_attributes)
 
-        cn_list = []
+        entries = []
 
-        # Collect the results
-        for entry in conn.entries:
-            cn_list.append(entry.cn.value)
+        entries = conn.entries
 
-        # Make sure to unbind the connection after using it.
+             # Make sure to unbind the connection after using it.
         conn.unbind()
 
-        return cn_list
+        return entries
 
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -146,9 +149,13 @@ def get_groups(user_repository, login_info):
             raise ValueError("ldap_url, ldap_base_dn, and ldap_password must all be strings.")
 
         search_filter = f"(member=cn={login_info["info"]["sub"]},ou=users,{ldap_base_dn})"
-        cn_list = query_ldap_(search_filter)
+        entries = query_ldap_(search_filter,['cn'])
         # Define the search filter
 
+        cn_list = []
+        # Collect the results
+        for entry in entries:
+            cn_list.append(entry.cn.value)
         return cn_list
 
     except Exception as e:
