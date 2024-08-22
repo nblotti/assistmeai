@@ -8,13 +8,13 @@ from sharing.Group import Group
 class GroupRepository:
     INSERT_GROUP_QUERY = """ INSERT INTO shared_groups ( name, owner, creation_date)  VALUES ( %s, %s, %s) RETURNING id;"""
 
-    SELECT_GROUP_QUERY = """SELECT id,name, owner, creation_date FROM shared_groups WHERE id=%s """
+    SELECT_GROUP_QUERY = """SELECT id::text,name, owner, creation_date FROM shared_groups WHERE id=%s """
 
     UPDATE_GROUP_QUERY = """UPDATE shared_groups set name = %s,owner= %s, creation_date= %s where id= %s"""
 
     DELETE_GROUP_QUERY = """DELETE FROM shared_groups WHERE id = %s"""
 
-    SELECT_GROUP_BY_OWNER_QUERY = """SELECT id,name, owner, creation_date FROM shared_groups WHERE owner=%s """
+    SELECT_GROUP_BY_OWNER_QUERY = """SELECT id::text,name, owner, creation_date FROM shared_groups WHERE owner=%s """
 
     DELETE_ALL_QUERY = """DELETE FROM shared_groups"""
 
