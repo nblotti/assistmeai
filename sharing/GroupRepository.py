@@ -2,6 +2,8 @@ import os
 
 from psycopg2 import connect
 
+from sharing.Group import Group
+
 
 class GroupRepository:
     INSERT_GROUP_QUERY = """ INSERT INTO shared_groups ( name, owner, creation_date)  VALUES ( %s, %s, %s) RETURNING id;"""
@@ -58,7 +60,9 @@ class GroupRepository:
         cursor.execute(self.SELECT_GROUP_QUERY, (group_id,))
         result = cursor.fetchone()
         conn.close()
-        return result if result else None
+        if result:
+            return Group(id=result[0], name=result[1], owner=result[2], creation_date=result[3])
+        return None
 
     def update_group(self, group):
         conn = self.build_connection()
@@ -83,5 +87,11 @@ class GroupRepository:
         cursor.execute(self.SELECT_GROUP_BY_OWNER_QUERY, (owner_id,))
         result = cursor.fetchall()
         conn.close()
-        return result if result else []
+
+        # Transform each database row into an instance of the Group model
+        groups = [
+            Group(id=row[0], name=row[1], owner=row[2], creation_date=row[3])
+            for row in result
+        ]
+        return groups
 

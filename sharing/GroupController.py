@@ -1,5 +1,5 @@
 import json
-from typing import Annotated
+from typing import Annotated, List
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.encoders import jsonable_encoder
 from starlette import status
@@ -29,22 +29,16 @@ def create_group(group: Group, group_repository: group_repository_dep):
     return db_group
 
 
-@router_group.get("/owner/{owner_id}/")
+@router_group.get("/owner/{owner_id}/",response_model=List[Group])
 def list_group_by_owner(owner_id: str, group_repository: group_repository_dep):
 
-    db_groups = group_repository.list_groups_by_owner(owner_id)
-    return json.loads(json.dumps(db_groups, cls=CustomEncoder))
+    return group_repository.list_groups_by_owner(owner_id)
 
 
 @router_group.get("/{group_id}/", response_model=Group)
 def read_group(group_id: int, group_repository: group_repository_dep):
     logging.debug("Reading group with ID: %s", group_id)
-    db_group = group_repository.get_group(group_id)
-    if db_group is None:
-        logging.error("Group not found with ID: %s", group_id)
-        raise HTTPException(status_code=404, detail="Group not found")
-    json_compatible_item_data = jsonable_encoder(db_group)
-    return JSONResponse(content=json_compatible_item_data)
+    return group_repository.get_group(group_id)
 
 
 @router_group.put("/", response_model=Group)
