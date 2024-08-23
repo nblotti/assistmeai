@@ -41,7 +41,7 @@ async def upload_file(documents_repository: document_repository_dep,
     return {"filename": file.filename, "blob_id": blob_id}
 
 
-@router_file.post("/setnewperimeter",response_model=ShareDocument)
+@router_file.post("/setnewperimeter", response_model=ShareDocument)
 async def share_file(share_document_dto: ShareDocument,
                      documents_repository: document_repository_dep,
                      embedding_repository: embeddings_repository_dep
@@ -53,7 +53,31 @@ async def share_file(share_document_dto: ShareDocument,
     name = document[0]
     content = document[1]
     old_perimeter = document[2]
-    new_perimeter = f"{share_document_dto.perimeter_added}  {old_perimeter}"
+    new_perimeter = f"{share_document_dto.perimeter_change}  {old_perimeter}"
+
+    temp_file = "./" + blob_id + ".document"
+    with open(temp_file, "wb") as file_w:
+        file_w.write(content)
+
+    documents_repository.delete_embeddings_by_id(blob_id)
+    embedding_repository.create_embeddings_for_pdf(blob_id, new_perimeter, temp_file, name)
+
+    return JSONResponse(content=share_document_dto)
+
+
+@router_file.post("/shrinkperimeter", response_model=ShareDocument)
+async def share_file(share_document_dto: ShareDocument,
+                     documents_repository: document_repository_dep,
+                     embedding_repository: embeddings_repository_dep
+                     ):
+    blob_id = share_document_dto.document_id
+
+    document = documents_repository.get_by_id(blob_id)
+
+    name = document[0]
+    content = document[1]
+    old_perimeter = document[2]
+    new_perimeter = old_perimeter.replace(share_document_dto.perimeter_change, "")
 
     temp_file = "./" + blob_id + ".document"
     with open(temp_file, "wb") as file_w:
