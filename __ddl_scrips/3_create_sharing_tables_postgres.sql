@@ -1,17 +1,19 @@
-CREATE TABLE shared_groups (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR NOT NULL,
-    owner VARCHAR NOT NULL,
-    creation_date DATE NOT NULL
+CREATE TABLE shared_groups
+(
+    id            INT DEFAULT nextval('perimeter_sequence') PRIMARY KEY,
+    name          VARCHAR NOT NULL,
+    owner         VARCHAR NOT NULL,
+    creation_date DATE    NOT NULL
 );
 
 CREATE INDEX ix_groups_id ON shared_groups (id);
 
-CREATE TABLE shared_group_users (
-    id SERIAL PRIMARY KEY,
-    group_id integer NOT NULL,
-    user_id VARCHAR NOT NULL,
-    creation_date DATE NOT NULL,
+CREATE TABLE shared_group_users
+(
+    id            SERIAL PRIMARY KEY,
+    group_id      integer NOT NULL,
+    user_id       VARCHAR NOT NULL,
+    creation_date DATE    NOT NULL,
     FOREIGN KEY (group_id) REFERENCES shared_groups (id) ON DELETE CASCADE,
     CONSTRAINT unique_group_user UNIQUE (group_id, user_id)
 );
@@ -19,11 +21,12 @@ CREATE TABLE shared_group_users (
 -- Creating an index on group_id to improve query performance when filtering by group_id
 CREATE INDEX idx_user_id ON shared_group_users (group_id);
 
-CREATE TABLE shared_group_document (
-    id SERIAL PRIMARY KEY,
-    group_id integer NOT NULL,
-    document_id integer NOT NULL,
-    creation_date DATE NOT NULL,
+CREATE TABLE shared_group_document
+(
+    id            SERIAL PRIMARY KEY,
+    group_id      integer NOT NULL,
+    document_id   integer NOT NULL,
+    creation_date DATE    NOT NULL,
     FOREIGN KEY (group_id) REFERENCES shared_groups (id) ON DELETE CASCADE,
     FOREIGN KEY (document_id) REFERENCES document (id) ON DELETE CASCADE
 );

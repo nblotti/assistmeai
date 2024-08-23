@@ -9,10 +9,11 @@ CREATE TABLE document
     document    BYTEA
 );
 
+CREATE SEQUENCE perimeter_sequence;
 
 CREATE TABLE document_category
 (
-    id            SERIAL PRIMARY KEY, -- SERIAL is equivalent to AUTO_INCREMENT in MySQL
+    id            INT DEFAULT nextval('perimeter_sequence') PRIMARY KEY,
     category_name TEXT UNIQUE
 );
 ------------------------------------------------------------------------------------------------------------------------
@@ -57,13 +58,14 @@ CREATE TABLE message
 ------------------------------------------------------------------------------------------------------------------------
 -- assistants
 
-CREATE TABLE assistants (
-    id SERIAL PRIMARY KEY,  -- SERIAL is equivalent to AUTO_INCREMENT in MySQL
-    user_id TEXT,
-    conversation_id INTEGER,
-    name TEXT,
-    description TEXT,
-    gpt_model_number TEXT  DEFAULT '3.5'-- Adding the model_number column at the end
+CREATE TABLE assistants
+(
+    id               SERIAL PRIMARY KEY, -- SERIAL is equivalent to AUTO_INCREMENT in MySQL
+    user_id          TEXT,
+    conversation_id  INTEGER,
+    name             TEXT,
+    description      TEXT,
+    gpt_model_number TEXT DEFAULT '3.5'-- Adding the model_number column at the end
 );
 CREATE OR REPLACE FUNCTION delete_related_conversation()
     RETURNS TRIGGER AS
@@ -130,28 +132,28 @@ EXECUTE FUNCTION delete_related_entries();
 ------------------------------------------------------------------------------------------------------------------------
 
 -- Indexes for document table
-CREATE INDEX idx_document_name ON document(name);
-CREATE INDEX idx_document_created_on ON document(created_on);
-CREATE INDEX idx_document_perimeter ON document(perimeter);
+CREATE INDEX idx_document_name ON document (name);
+CREATE INDEX idx_document_created_on ON document (created_on);
+CREATE INDEX idx_document_perimeter ON document (perimeter);
 
 -- Indexes for document_category table
-CREATE INDEX idx_category_name ON document_category(category_name);
+CREATE INDEX idx_category_name ON document_category (category_name);
 
 -- Indexes for conversation table
-CREATE INDEX idx_conversation_document_id ON conversation(document_id);
-CREATE INDEX idx_conversation_created_on ON conversation(created_on);
+CREATE INDEX idx_conversation_document_id ON conversation (document_id);
+CREATE INDEX idx_conversation_created_on ON conversation (created_on);
 
 -- Indexes for message table
-CREATE INDEX idx_message_conversation_id ON message(conversation_id);
-CREATE INDEX idx_message_created_on ON message(created_on);
+CREATE INDEX idx_message_conversation_id ON message (conversation_id);
+CREATE INDEX idx_message_created_on ON message (created_on);
 
 -- Indexes for assistants table
-CREATE INDEX idx_assistants_user_id ON assistants(user_id);
-CREATE INDEX idx_assistants_conversation_id ON assistants(conversation_id);
+CREATE INDEX idx_assistants_user_id ON assistants (user_id);
+CREATE INDEX idx_assistants_conversation_id ON assistants (conversation_id);
 
 -- Indexes for user_groups table
-CREATE INDEX idx_user_groups_group_id ON user_groups(group_id);
-CREATE INDEX idx_user_groups_category_id ON user_groups(category_id);
+CREATE INDEX idx_user_groups_group_id ON user_groups (group_id);
+CREATE INDEX idx_user_groups_category_id ON user_groups (category_id);
 
 
 
