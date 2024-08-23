@@ -3,6 +3,7 @@ import os
 from psycopg2 import connect
 
 from sharing.SharedGroupUser import SharedGroupUser
+from sharing.SharedGroupUserDTO import SharedGroupUserDTO
 
 
 class SharedGroupUserRepository:
@@ -13,6 +14,9 @@ class SharedGroupUserRepository:
     DELETE_GROUP_QUERY = """DELETE FROM shared_group_users WHERE id = %s"""
 
     SELECT_GROUP_BY_GROUP_ID_QUERY = """SELECT id::text,group_id::text, user_id, creation_date FROM shared_group_users WHERE group_id=%s """
+
+    SELECT_GROUP_BY_USER_ID_QUERY = """select su.group_id, sg.name, su.creation_date, sg.owner 
+    from shared_group_users su, shared_groups sg where su.group_id = sg.id and su.user_id =%s """
 
     DELETE_ALL_QUERY = """DELETE FROM shared_group_users"""
 
@@ -68,16 +72,31 @@ class SharedGroupUserRepository:
         conn.commit()
         conn.close()
 
-    def list_by_group_id(self, group_id):
+    def listByUserId(self, user_id):
         conn = self.build_connection()
         cursor = conn.cursor()
-        cursor.execute(self.SELECT_GROUP_BY_GROUP_ID_QUERY, (group_id,))
+        cursor.execute(self.SELECT_GROUP_BY_USER_ID_QUERY, (user_id,))
         result = cursor.fetchall()
         conn.close()
 
         # Transform each database row into an instance of the Group model
         groups = [
-            SharedGroupUser(id=row[0], group_id=row[1], user_id=row[2], creation_date=row[3])
+            SharedGroupUserDTO(group_id=row[0], name=row[1], creation_date=row[2], owner=row[3])
             for row in result
         ]
         return groups
+
+
+def list_by_group_id(self, group_id):
+    conn = self.build_connection()
+    cursor = conn.cursor()
+    cursor.execute(self.SELECT_GROUP_BY_GROUP_ID_QUERY, (group_id,))
+    result = cursor.fetchall()
+    conn.close()
+
+    # Transform each database row into an instance of the Group model
+    groups = [
+        SharedGroupUser(id=row[0], group_id=row[1], user_id=row[2], creation_date=row[3])
+        for row in result
+    ]
+    return groups
