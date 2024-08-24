@@ -1,14 +1,11 @@
-import json
 import os
 from typing import Annotated, Optional
 
-from fastapi import UploadFile, File, APIRouter, Form, Depends, HTTPException
+from fastapi import UploadFile, File, APIRouter, Form, Depends
 from starlette.responses import StreamingResponse, Response
 
-from CustomEncoder import CustomEncoder
 from DependencyManager import document_dao_provider
 from document.DocumentsRepository import DocumentsRepository
-from document.ShareDocument import ShareDocument
 from embeddings.EmbeddingRepository import EmbeddingRepository
 
 router_file = APIRouter(
@@ -24,20 +21,20 @@ embeddings_repository_dep = Annotated[EmbeddingRepository, Depends(EmbeddingRepo
 @router_file.post("/")
 async def upload_file(documents_repository: document_repository_dep,
                       embedding_repository: embeddings_repository_dep,
-                      perimeter: str = Form(...), file: UploadFile = File(...)):
+                      owner: str = Form(...), file: UploadFile = File(...)):
     contents = await file.read()
 
-    blob_id = documents_repository.save(file.filename, perimeter, contents)
+    document = documents_repository.save(file.filename, owner, contents)
 
-    temp_file = "./" + blob_id + ".document"
+    temp_file = "./" + document.id + ".document"
     with open(temp_file, "wb") as file_w:
         file_w.write(contents)
 
-    embedding_repository.create_embeddings_for_pdf(blob_id, perimeter, temp_file, file.filename)
+    embedding_repository.create_embeddings_for_pdf(document.id, owner, temp_file, file.filename)
 
     delete_temporary_disk_file(temp_file)
 
-    return {"filename": file.filename, "blob_id": blob_id}
+    return document
 
 
 '''
@@ -76,7 +73,7 @@ async def delete_all(
 async def list_document(documents_repository: document_repository_dep, user: Optional[str] = None):
     if user is None:
         return Response(status_code=404)
-    return json.loads(json.dumps(documents_repository.list(user), cls=CustomEncoder))
+    return documents_repository.list(user)
 
 
 @router_file.get("/{blob_id}/")

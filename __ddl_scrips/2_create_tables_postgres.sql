@@ -5,15 +5,16 @@ CREATE TABLE document
     id          SERIAL PRIMARY KEY,
     name        VARCHAR(255),
     created_on  TIMESTAMP DEFAULT TO_TIMESTAMP(TO_CHAR(CURRENT_TIMESTAMP, 'DD.MM.YYYY'), 'DD.MM.YYYY'),
-    "perimeter" VARCHAR(255), -- "rights" is a reserved keyword in PostgreSQL, so it needs to be quoted
+    owner VARCHAR(255),
+    perimeter VARCHAR(255),
     document    BYTEA
 );
 
-CREATE SEQUENCE perimeter_sequence;
+CREATE SEQUENCE owner_sequence;
 
 CREATE TABLE document_category
 (
-    id            INT DEFAULT nextval('perimeter_sequence') PRIMARY KEY,
+    id            INT DEFAULT nextval('owner_sequence') PRIMARY KEY,
     category_name TEXT UNIQUE
 );
 ------------------------------------------------------------------------------------------------------------------------
@@ -134,7 +135,7 @@ EXECUTE FUNCTION delete_related_entries();
 -- Indexes for document table
 CREATE INDEX idx_document_name ON document (name);
 CREATE INDEX idx_document_created_on ON document (created_on);
-CREATE INDEX idx_document_perimeter ON document (perimeter);
+CREATE INDEX idx_document_owner ON document (owner);
 
 -- Indexes for document_category table
 CREATE INDEX idx_category_name ON document_category (category_name);

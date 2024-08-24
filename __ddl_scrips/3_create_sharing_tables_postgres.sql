@@ -1,6 +1,6 @@
 CREATE TABLE shared_groups
 (
-    id            INT DEFAULT nextval('perimeter_sequence') PRIMARY KEY,
+    id            INT DEFAULT nextval('owner_sequence') PRIMARY KEY,
     name          VARCHAR NOT NULL,
     owner         VARCHAR NOT NULL,
     creation_date DATE    NOT NULL
