@@ -6,7 +6,6 @@ from starlette import status
 from starlette.responses import JSONResponse
 
 from DependencyManager import shared_group_user_dao_provider
-from sharing.SharedGroup import SharedGroup
 from sharing.SharedGroupUser import SharedGroupUser
 from sharing.SharedGroupUserDTO import SharedGroupUserDTO
 from sharing.SharedGroupUserRepository import SharedGroupUserRepository
@@ -39,10 +38,11 @@ def read_group(id: int, shared_group_user_repository: shared_group_user_reposito
     logging.debug("Reading group with ID: %s", id)
     return shared_group_user_repository.read(id)
 
+
 @router_shared_group_user.get("/user/{user_id}/", response_model=List[SharedGroupUserDTO])
 def read_group(user_id: str, shared_group_user_repository: shared_group_user_repository_dep):
     logging.debug("Reading groups with user_id :: %s", user_id)
-    return shared_group_user_repository.listByUserId(user_id)
+    return shared_group_user_repository.list_by_user_id(user_id)
 
 
 @router_shared_group_user.delete("/{id}/")

@@ -72,7 +72,7 @@ class SharedGroupUserRepository:
         conn.commit()
         conn.close()
 
-    def listByUserId(self, user_id):
+    def list_by_user_id(self, user_id):
         conn = self.build_connection()
         cursor = conn.cursor()
         cursor.execute(self.SELECT_GROUP_BY_USER_ID_QUERY, (user_id,))
@@ -87,16 +87,16 @@ class SharedGroupUserRepository:
         return groups
 
 
-def list_by_group_id(self, group_id):
-    conn = self.build_connection()
-    cursor = conn.cursor()
-    cursor.execute(self.SELECT_GROUP_BY_GROUP_ID_QUERY, (group_id,))
-    result = cursor.fetchall()
-    conn.close()
+    def list_by_group_id(self, group_id):
+        conn = self.build_connection()
+        cursor = conn.cursor()
+        cursor.execute(self.SELECT_GROUP_BY_GROUP_ID_QUERY, (group_id,))
+        result = cursor.fetchall()
+        conn.close()
 
-    # Transform each database row into an instance of the Group model
-    groups = [
-        SharedGroupUser(id=row[0], group_id=row[1], user_id=row[2], creation_date=row[3])
-        for row in result
-    ]
-    return groups
+        # Transform each database row into an instance of the Group model
+        groups = [
+            SharedGroupUser(id=row[0], group_id=row[1], user_id=row[2], creation_date=row[3])
+            for row in result
+        ]
+        return groups
