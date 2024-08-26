@@ -1,11 +1,20 @@
+import io
 import os
 from typing import Annotated, Optional
+from uuid import uuid4
 
-from fastapi import UploadFile, File, APIRouter, Form, Depends
+from fastapi import UploadFile, File, APIRouter, Form, Depends, HTTPException
+from langchain_community.document_loaders import AsyncHtmlLoader
+from langchain_community.document_transformers import BeautifulSoupTransformer
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import SimpleDocTemplate
+from reportlab.platypus.para import Paragraph
 from starlette.responses import StreamingResponse, Response
 
 from DependencyManager import document_dao_provider
 from document.DocumentsRepository import DocumentsRepository
+from document.DownloadBlobRequest import DownloadBlobRequest
 from embeddings.EmbeddingRepository import EmbeddingRepository
 
 router_file = APIRouter(
@@ -92,3 +101,75 @@ async def download_blob(documents_repository: document_repository_dep, blob_id: 
         # Stream the content
     else:
         return {"error": "Blob not found"}
+
+
+@router_file.post("/web/")
+async def download_blob(request: DownloadBlobRequest, documents_repository: document_repository_dep,
+                        embedding_repository: embeddings_repository_dep):
+    try:
+        uuid_str = str(uuid4())
+        buffer = io.BytesIO()
+        url = request.url
+        tags = request.tags
+        owner = request.owner
+        title = request.title
+
+        # Load and transform documents
+        loader = AsyncHtmlLoader(url)
+        docs = loader.load()  # Make sure to await asynchronous loader
+
+        bs_transformer = BeautifulSoupTransformer()
+        if len(tags) != 0:
+            docs_transformed = bs_transformer.transform_documents(docs, tags_to_extract=tags.split(","), remove_lines=False)
+        else:
+            docs_transformed = bs_transformer.transform_documents(docs)
+        # result = chain.invoke({"input": docs_transformed})
+
+        generate_pdf(docs_transformed[0].page_content, buffer)
+
+        # Get the byte data from the buffer
+        pdf_bytes = buffer.getvalue()
+        buffer.close()
+
+        if len(title) == 0:
+            title = uuid_str
+
+        temp_file = f"./{title}.document"
+
+        # Write buffer content to a file on disk
+        with open(temp_file, 'wb') as f:
+            f.write(pdf_bytes)
+
+        # Save document in repository
+        document = documents_repository.save(temp_file, owner, pdf_bytes)
+
+        # Create embeddings
+        embedding_repository.create_embeddings_for_pdf(document.id, owner, temp_file, title)
+
+        delete_temporary_disk_file(temp_file)
+
+        return {"status": "success", "uuid": uuid_str, "content": docs_transformed[0].page_content}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def generate_pdf(result, buffer):
+    # Create a SimpleDocTemplate with the buffer and A4 page size
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+
+    # Get the sample styles for the paragraphs
+    styles = getSampleStyleSheet()
+    style = styles['Normal']
+
+    # Create a list to hold the story elements (paragraphs)
+    story = []
+
+    # Split the content into paragraphs
+    paragraphs = result.split('\n')
+    for paragraph in paragraphs:
+        # Add each paragraph to the story list
+        story.append(Paragraph(paragraph, style))
+
+    # Build the PDF with the story elements
+    doc.build(story)
