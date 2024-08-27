@@ -1,18 +1,22 @@
+import asyncio
+import logging
 import os
 import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Query, Depends, HTTPException
-from langchain.chains.combine_documents.map_reduce import MapReduceDocumentsChain
-from langchain.chains.combine_documents.reduce import ReduceDocumentsChain
-from langchain.chains.combine_documents.stuff import StuffDocumentsChain
-from langchain.chains.llm import LLMChain
 from langchain.chains.retrieval_qa.base import RetrievalQA
-from langchain_core.prompts import PromptTemplate
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.output_parsers import JsonOutputParser, StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.tools import tool
+from langchain_text_splitters import CharacterTextSplitter
+from pydantic.v1 import BaseModel, Field
 from starlette.responses import JSONResponse
 
 from DependencyManager import message_dao_provider, conversation_dao_provider
-from chat.azure_openai import chat_gpt_35
+from chat.azure_openai import chat_gpt_35, chat_gpt_4o
 from conversation.Conversation import Conversation
 from conversation.ConversationRepository import ConversationRepository
 from document.DocumentsController import embeddings_repository_dep, document_repository_dep
@@ -57,7 +61,7 @@ async def message(message_repository: message_repository_dep, conversation_repos
     if rag_retriever:
         chain = RetrievalQA.from_chain_type(
             llm=chat_gpt_35,
-            #verbose=True,
+            # verbose=True,
             retriever=rag_retriever,
             return_source_documents=True,
             output_key="result",
@@ -67,7 +71,7 @@ async def message(message_repository: message_repository_dep, conversation_repos
     # Invoke the chain with the command/query
     try:
         result = chain.invoke({"query": command})
-        #print(result)  # Or whatever logging mechanism you prefer
+        # print(result)  # Or whatever logging mechanism you prefer
     except Exception as e:
         print(f"Error occurred: {e}")
         raise
@@ -80,105 +84,73 @@ async def message(message_repository: message_repository_dep, conversation_repos
         return JSONResponse(content={"result": result["result"]})
 
 
+class Topic(BaseModel):
+    name: str = Field(description=" The name of the topic that will be summarized")
+
+
+class DocumentSummary(BaseModel):
+    content: str = Field(description="The list of topic that have been summarized in the document")
+
+
+@tool("summary-tool")
+def summarize_tool(topic: Topic, summary: DocumentSummary):
+    """This tool is used to write a concise summary of each topic in the input"""
+    logging.debug("{topic} {summary}")
+    return topic, summary
+
+
 @chat_ai.get("/summarize/{blob_id}/")
-async def summarize(documents_repository: document_repository_dep,
-                    embedding_repository: embeddings_repository_dep,
+async def summarize(documents_repository: document_repository_dep, embedding_repository: embeddings_repository_dep,
                     blob_id: str):
     content = documents_repository.get_by_id(blob_id)
-    path = "./" + str(uuid.uuid4())
+    if not content:
+        raise HTTPException(status_code=404, detail="Document not found")
 
+    path = "./" + str(uuid.uuid4())
     temp_pdf_file = path + ".pdf"
 
     with open(temp_pdf_file, "wb") as file_w:
         file_w.write(content[1])
 
-    docs = embedding_repository.create_embeddings(temp_pdf_file)
+    loader = PyPDFLoader(temp_pdf_file)
+    pages = loader.load()
 
-    # This controls how each document will be formatted. Specifically,
-    # it will be passed to `format_document` - see that function for more
-    # details.
-    document_prompt = PromptTemplate(
-        input_variables=["page_content"],
-        template="{page_content}"
-    )
-    document_variable_name = "context"
-    llm = chat_gpt_35
-    # The prompt here should take as an input variable the
-    # `document_variable_name`
-    prompt = PromptTemplate.from_template(
-        "Summarize this content: {context}"
-    )
-    llm_chain = LLMChain(llm=llm, prompt=prompt)
-    # We now define how to combine these summaries
-    reduce_prompt = PromptTemplate.from_template(
-        "Combine these summaries: {context}"
-    )
-    reduce_llm_chain = LLMChain(llm=llm, prompt=reduce_prompt)
-    combine_documents_chain = StuffDocumentsChain(
-        llm_chain=reduce_llm_chain,
-        document_prompt=document_prompt,
-        document_variable_name=document_variable_name
-    )
-    reduce_documents_chain = ReduceDocumentsChain(
-        combine_documents_chain=combine_documents_chain,
-    )
-    chain = MapReduceDocumentsChain(
-        llm_chain=llm_chain,
-        reduce_documents_chain=reduce_documents_chain,
-    )
-    # If we wanted to, we could also pass in collapse_documents_chain
-    # which is specifically aimed at collapsing documents BEFORE
-    # the final call.
-    prompt = PromptTemplate.from_template(
-        "Collapse this content: {context}"
-    )
-    llm_chain = LLMChain(llm=llm, prompt=prompt)
-    collapse_documents_chain = StuffDocumentsChain(
-        llm_chain=llm_chain,
-        document_prompt=document_prompt,
-        document_variable_name=document_variable_name
-    )
-    reduce_documents_chain = ReduceDocumentsChain(
-        combine_documents_chain=combine_documents_chain,
-        collapse_documents_chain=collapse_documents_chain,
-    )
-    chain = MapReduceDocumentsChain(
-        llm_chain=llm_chain,
-        reduce_documents_chain=reduce_documents_chain,
-    )
+    text_splitter = CharacterTextSplitter(separator="\n", chunk_size=3000, chunk_overlap=500, length_function=len)
+    split_docs = text_splitter.split_documents(pages)
 
-    result = chain.invoke(docs)
-    # GPT3.5-16k
+    tools = [summarize_tool]
+
+    llm_with_tools = chat_gpt_4o.bind_tools(tools)
+
+    tasks = [llm_with_tools.ainvoke(doc.page_content) for doc in split_docs[:2]]
+    results = await asyncio.gather(*tasks)
 
     try:
         os.remove(temp_pdf_file)
         print(f"File '{temp_pdf_file}' deleted successfully.")
     except OSError as e:
         print(f"Error deleting file '{temp_pdf_file}': {e}")
-    return JSONResponse(content={"result": result["output_text"]})
 
-@chat_ai.get("/command/nomemory/")
-async def message(conversation_repository: conversation_repository_dep, command: str, conversation_id: str,
-                  perimeter: str = Query(...)):
-    # Choose the LLM that will drive the agent
-    # Only certain models support this
-    cur_conversation = conversation_repository.get_conversation_by_id(conversation_id)
+    messages = [SystemMessage("Given the results of a series of tool call, Your task is to format the responses."
+                              "Start with the topic name and then add the summary. Split the topics by two empty lines"
+                              "Your response is going to be used to create a pdf, so make sure that you use the right"
+                              "format.")]
 
-    if cur_conversation.pdf_id is None or cur_conversation.pdf_id == "-1":
-        rag_retriever = CustomAzurePGVectorRetriever(QueryType.PERIMETER, perimeter)
-    else:
-        rag_retriever = CustomAzurePGVectorRetriever(QueryType.DOCUMENT, cur_conversation.pdf_id)
+    for result in results:
+        messages.append(result)
+        for tool_call in result.tool_calls:
+            selected_tool = {"summary-tool": summarize_tool}[tool_call["name"].lower()]
+            tool_msg = selected_tool.invoke(tool_call)
+            messages.append(tool_msg)
 
-    chain = RetrievalQA.from_chain_type(
-        llm=chat_gpt_35,
-        #verbose=True,
-        retriever=rag_retriever,
-        return_source_documents=True,
-    )
+    summary = llm_with_tools.invoke(messages)
 
-    result = chain.invoke({"query": command})
-    sources = []
-    for document in result["source_documents"]:
-        sources.append(document.metadata)
+    chat_template = ChatPromptTemplate.from_messages(messages)
 
-    return {"result": result["result"], "sources": sources}
+    parser = StrOutputParser()
+
+    chain = chat_template | llm_with_tools | parser
+
+    result_final = chain.invoke({})
+
+    return result_final
