@@ -50,10 +50,10 @@ async def message(message_repository: message_repository_dep, conversation_repos
     memory = build_memory(message_repository, conversation_id)
 
     # Determine the appropriate retriever based on the perimeter or conversation PDF ID
-    if perimeter:
-        rag_retriever = CustomAzurePGVectorRetriever(QueryType.PERIMETER, perimeter)
-    elif cur_conversation.pdf_id is not None and cur_conversation.pdf_id != 0:
+    if cur_conversation.pdf_id is not None and cur_conversation.pdf_id != 0:
         rag_retriever = CustomAzurePGVectorRetriever(QueryType.DOCUMENT, str(cur_conversation.pdf_id))
+    elif perimeter:
+        rag_retriever = CustomAzurePGVectorRetriever(QueryType.PERIMETER, perimeter)
     else:
         raise HTTPException(status_code=400, detail="Invalid argument: perimeter cannot be null")
 

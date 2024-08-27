@@ -1,35 +1,38 @@
-from datetime import date
-from http.client import HTTPException
-from typing import Optional
+from fastapi import FastAPI
+from contextlib import asynccontextmanager
 
-from langchain.globals import set_verbose
-from starlette.responses import Response
+from fastapi.openapi.models import Response
+
+import config  # Ensure import of config module
+
+# Remaining imports...
+from starlette.middleware.cors import CORSMiddleware
+from datetime import date
+from typing import Optional
+import logging
 import jwt
-from fastapi import FastAPI, Request
 from jwt import ExpiredSignatureError, InvalidTokenError
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.middleware.cors import CORSMiddleware
 
-import config
 from assistants.AssistantsController import router_assistant
 from chat.ChatController import chat_ai
 from conversation.ConversationController import router_conversation
 from document.DocumentsController import router_file
 from message.MessageController import router_message
 from rights.UserController import router_user
+from sharing.SharedGroupController import router_group
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, document, tool windows, actions, and settings.
+from sharing.SharedGroupDocumentController import router_shared_group_document
+from sharing.SharedGroupUserController import router_shared_group_user
+
+config.set_verbose(True)
+# CORS origins allowed
+origins = ["http://localhost:4200", "*"]
 
 
-config.load_config()
-
-app = FastAPI()
-
-origins = ["*"]
-
+# Middleware to disable caching
 class NoCacheMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(self, request, call_next):
         response = await call_next(request)
         response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0'
         response.headers['Pragma'] = 'no-cache'
@@ -37,65 +40,73 @@ class NoCacheMiddleware(BaseHTTPMiddleware):
         return response
 
 
-
+# Middleware for verifying Bearer tokens
 class BearerTokenMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(self, request, call_next):
         if request.url.path.endswith("/login"):
-            response = await call_next(request)
-            return response
+            return await call_next(request)
 
         authorization: Optional[str] = request.headers.get('Authorization')
         if authorization and authorization.startswith("Bearer "):
-            token = authorization.split("Bearer ")[1]  # Extract the token
-            if self.verify_token(token):
-                response = await call_next(request)
-
-            else:
-                #response = Response(content=f"Error: Invalid token", status_code=401)
-                response = await call_next(request)
+            token = authorization.split("Bearer ")[1]
+            return await call_next(request)
         else:
-            print("Authorization header missing or invalid")
-            #response = Response(content="Authorization header missing or invalid", status_code=401)
-            response = await call_next(request)
-        return response
+            logging.error("Authorization header missing or invalid")
+            return Response(content="Authorization header missing or invalid", status_code=401)
 
     def verify_token(self, token: str) -> bool:
         try:
             decoded_payload = jwt.decode(jwt=token, key=config.jwt_secret_key, algorithms=[config.jwt_algorithm])
-            print("JWT  token is valid : decoded payload:", decoded_payload)
+            logging.debug("JWT token is valid : decoded payload: %s", decoded_payload)
             return True
         except ExpiredSignatureError:
-            print("JWT Token has expired")
-            return False
+            logging.error("JWT Token has expired")
+            return True
         except InvalidTokenError:
-            print("JWT Token is invalid")
-            return False
+            logging.error("JWT Token is invalid")
+            return True
 
 
+# Async context manager for application lifespan
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logging.debug("Lifespan startup")
+    config.load_config()  # Ensure config is loaded, including SessionLocal initialization
+    yield
+    logging.debug("Lifespan shutdown")
+
+
+# FastAPI application instance
+app = FastAPI(lifespan=lifespan)
+
+
+@app.get("/ping")
+async def ping():
+    return {"date": date.today()}
+
+
+# Middleware for CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # Allows only the specified origins
-    allow_credentials=True,  # Allows cookies to be included in CORS requests
-    allow_methods=["*"],  # Allows all methods (GET, POST, PUT, DELETE, etc.)
-    allow_headers=["*"],  # Allows all headers
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
-app.add_middleware(
-    NoCacheMiddleware)
 
-#only logging for now
-app.add_middleware(BearerTokenMiddleware)
+# Custom middleware
+app.add_middleware(NoCacheMiddleware)
+#app.add_middleware(BearerTokenMiddleware)
 
+# Register routers
 app.include_router(chat_ai)
 app.include_router(router_file)
 app.include_router(router_conversation)
 app.include_router(router_message)
 app.include_router(router_user)
-
 app.include_router(router_assistant)
+app.include_router(router_group)
+app.include_router(router_shared_group_user)
 
+app.include_router(router_shared_group_document)
 
-@app.get("/ping")
-async def ping():
-    return date.today()
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/

@@ -62,8 +62,6 @@ class CategoryRepository:
 
         return result
 
-
-
     def delete_by_id(self, category_id: str):
         conn = self.build_connection()
         cursor = conn.cursor()

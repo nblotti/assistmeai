@@ -51,7 +51,7 @@ For a practical example of a frontend that interacts with such REST APIs, please
 
 The application is designed to use PostgreSQL because it supports standard SQL databases and advanced features such as embedding through the <a href="https://github.com/pgvector/pgvector">PGVector extension<a>, but it can be easily adapted to use any other kind of database. 
 
-The creation of the tables is managed by using a provided [sql script](create_tables_postgres.sql)
+The creation of the tables is managed by using provded [sql scripts](__ddl_scrips/)
 
 ## DockerFile, Kubernetes Deployment, and Service Files
 For the seamless deployment and management of the application, we have included the necessary configuration files:
@@ -63,12 +63,12 @@ For the seamless deployment and management of the application, we have included 
 
 **Kubernetes (k8s) Deployment File:**
 
-- A reference [K8s deployment file](assistmeai_deployment.yaml) file is provided. It specifies details like the number of replicas (instances) of the application, the Docker image to use, resource requests and limits, environment variables, and more.
+- A reference [K8s deployment file](__k8s_scripts/assistmeai_deployment.yaml) file is provided. It specifies details like the number of replicas (instances) of the application, the Docker image to use, resource requests and limits, environment variables, and more.
 - Once you have built your Docker container and pushed it to your favorite repository (like DockerHub), you will need to make modifications to the script to update the image name and registry credentials (regcreds)
 
 **Kubernetes (k8s) Service File:**
 
-- A reference [K8s service file](assistmeai-service.yaml) file is provided.It defines the Kubernetes Service, which is responsible for exposing the application to external traffic or internal communication within the cluster.
+- A reference [K8s service file](__k8s_scripts/assistmeai-service.yaml) file is provided.It defines the Kubernetes Service, which is responsible for exposing the application to external traffic or internal communication within the cluster.
 - The application is initially configured to run behind a reverse proxy and not exposed externally. Depending on your requirements, you can easily adapt the exposure by modifying the service's port type.
 
 By using these files, you can easily build the Docker image, deploy the application on a Kubernetes cluster, and expose it for access. Detailed instructions and configurations are specified within the files to ensure a smooth setup and operation.
@@ -110,7 +110,8 @@ DB_NAME="rag"
 PGPASSWORD=$DB_PASSWORD createdb -h $DB_HOST -U $DB_USER $DB_NAME
 
 # Run the SQL script
-PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -d $DB_NAME -f create_tables_postgres.sql
+PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -d $DB_NAME -f 2_create_tables_postgres.sql
+PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -d $DB_NAME -f 3_create_sharing_tables_postgres.sql
 ```
 
 **Adapt the config file**

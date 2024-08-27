@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+  labels:
+    app: openldap
+  name: openldap
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openldap
+  template:
+    metadata:
+      labels:
+        app: openldap
+    spec:
+      containers:
+        - env:
+            - name: LDAP_ADMIN_PASSWORD
+              value: adminpassword
+            - name: LDAP_ADMIN_USERNAME
+              value: admin
+            - name: LDAP_ROOT
+              value: dc=foo,dc=com
+            - name: LDAP_ADMIN_DN
+              value: cn=admin,dc=foo,dc=com
+            - name: LDAP_CUSTOM_LDIF_DIR
+              value: /etc/ldapconfig
+            - name: LDAP_SKIP_DEFAULT_TREE
+              value: "yes"
+          image: bitnami/openldap
+          name: openldap
+          resources:
+            limits:
+              memory: 500Mi
+          volumeMounts:
+            - mountPath: /etc/ldapconfig
+              name: config-volume
+
+          ports:
+            - containerPort: 1389
+            - containerPort: 1636
+      volumes:
+          - configMap:
+              defaultMode: 420
+              name: my-config
+            name: config-volume
+      automountServiceAccountToken: false
+      restartPolicy: Always
+
+
+#docker run --detach --rm --name openldap --env LDAP_ADMIN_USERNAME=admin --env LDAP_ADMIN_PASSWORD=adminpassword   \
+# --env LDAP_ROOT=dc=foo,dc=com   --env LDAP_ADMIN_DN=cn=admin,dc=foo,dc=com bitnami/openldap:latest
