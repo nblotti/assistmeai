@@ -8,9 +8,11 @@ from document.Document import Document, DocumentType, Jobstatus
 class DocumentsRepository:
     INSERT_PDF_QUERY = """ INSERT INTO document ( name, owner,perimeter, document, document_type)  VALUES ( %s, %s, %s, %s, %s) RETURNING id,created_on;"""
 
-    SELECT_DOCUMENT_QUERY = """SELECT name, document ,owner, perimeter,created_on, document_type, summary_id, summary_status FROM document WHERE id=%s """
+    SELECT_DOCUMENT_STREAM_QUERY = """SELECT name, document ,perimeter, created_on FROM document WHERE id=%s """
 
-    LIST_PDF_QUERY_BY_USER_AND_TYPE = """SELECT id::text, name, owner , perimeter,created_on,summary_id, summary_status FROM document 
+    SELECT_DOCUMENT_NO_CONTENT_QUERY = """SELECT id::text, name, owner , perimeter,created_on,document_type,summary_id, summary_status FROM document WHERE id=%s """
+
+    LIST_DOCUMENT_NO_CONTENT_BY_USER_AND_TYPE_QUERY = """SELECT id::text, name, owner , perimeter,created_on,summary_id, summary_status FROM document 
     where owner=%s and document_type=%s"""
 
     DELETE_PDF_QUERY = """DELETE FROM document WHERE id = %s"""
@@ -67,13 +69,13 @@ class DocumentsRepository:
             if conn:
                 conn.close()
 
-    def get_by_id(self, blob_id):
+    def get_by_id_no_content(self, blob_id):
         conn = None
         cursor = None
         try:
             conn = self.build_connection()
             cursor = conn.cursor()
-            cursor.execute(self.SELECT_DOCUMENT_QUERY, (blob_id,))
+            cursor.execute(self.SELECT_DOCUMENT_NO_CONTENT_QUERY, (blob_id,))
             result = cursor.fetchone()
 
             if result:
@@ -82,7 +84,7 @@ class DocumentsRepository:
                                     owner=result[2],
                                     perimeter=result[3],
                                     created_on=result[4],
-                                    document_type=DocumentType(result[5]),
+                                    document_type=result[5],
                                     summary_id=result[6],
                                     summary_status=Jobstatus(result[7]))
                 return document
@@ -99,7 +101,29 @@ class DocumentsRepository:
             if conn:
                 conn.close()
 
-    def list(self, user, document_type: DocumentType):
+    def get_stream_by_id(self, blob_id):
+        conn = None
+        cursor = None
+        try:
+            conn = self.build_connection()
+            cursor = conn.cursor()
+            cursor.execute(self.SELECT_DOCUMENT_STREAM_QUERY, (blob_id,))
+            result = cursor.fetchone()
+            conn.close()
+            return result if result else None
+
+        except DatabaseError as e:
+            print(f"Database error occurred: {e}")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return None
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+
+    def list_no_content(self, user, document_type: DocumentType):
         """List all documents"""
         conn = None
         cursor = None
@@ -108,7 +132,7 @@ class DocumentsRepository:
             conn = self.build_connection()
             cursor = conn.cursor()
 
-            cursor.execute(self.LIST_PDF_QUERY_BY_USER_AND_TYPE, (user, document_type))
+            cursor.execute(self.LIST_DOCUMENT_NO_CONTENT_BY_USER_AND_TYPE_QUERY, (user, document_type))
             result = cursor.fetchall()
 
             documents = [

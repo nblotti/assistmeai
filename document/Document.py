@@ -24,9 +24,10 @@ class Document(BaseModel):
     owner: str
     perimeter: str
     created_on: Optional[date] = None
-    summary_id: Optional[str] = None
+    summary_id: Optional[int] = None
     summary_status: Optional[str] = Jobstatus.NONE
     document_type: Optional[DocumentType] = DocumentType.DOCUMENT
+    content: Optional[bytes] = None
 
     class Config:
         use_enum_values = True  # This will use enum values when serializing/deserializing

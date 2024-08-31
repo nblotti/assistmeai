@@ -5,9 +5,11 @@ from fastapi import APIRouter, Query, Depends
 from fastapi import Response
 
 from CustomEncoder import CustomEncoder
-from DependencyManager import message_dao_provider, conversation_dao_provider, document_dao_provider
+from DependencyManager import message_dao_provider, conversation_dao_provider, document_dao_provider, \
+    document_manager_provider
 from conversation.Conversation import Conversation
 from conversation.ConversationRepository import ConversationRepository
+from document import DocumentManager
 from document.DocumentsRepository import DocumentsRepository
 from message.MessageRepository import MessageRepository
 
@@ -27,7 +29,7 @@ Conversation entry point
 
 message_repository_dep = Annotated[MessageRepository, Depends(message_dao_provider.get_dependency)]
 conversation_repository_dep = Annotated[ConversationRepository, Depends(conversation_dao_provider.get_dependency)]
-document_repository_dep= Annotated[DocumentsRepository, Depends(document_dao_provider.get_dependency)]
+document_manager_dep= Annotated[DocumentManager, Depends(document_manager_provider.get_dependency)]
 @router_conversation.get("/perimeter/{perimeter}/")
 async def conversations(conversation_repository: conversation_repository_dep, perimeter: str):
     res = conversation_repository.get_conversation_by_perimeter(perimeter)
@@ -50,11 +52,11 @@ async def conversations(conversation_repository: conversation_repository_dep, co
 
 @router_conversation.post("/")
 async def conversation(conversation_repository: conversation_repository_dep,
-                       document_repository: document_repository_dep, new_conversation: Conversation):
+                       document_manager: document_manager_dep, new_conversation: Conversation):
     res = conversation_repository.save(new_conversation)
 
     if res.pdf_id != 0:
-        doc = document_repository.get_by_id(res.pdf_id)
-        res.pdf_name = doc[0]
+        doc = document_manager.get_by_id(res.pdf_id)
+        res.pdf_name = doc.name
 
     return res

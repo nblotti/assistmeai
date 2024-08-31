@@ -48,7 +48,10 @@ class DocumentManager:
         return self.list_documents_by_type(user, DocumentType.DOCUMENT)
 
     def list_documents_by_type(self, user: str, document_type: DocumentType):
-        return self.document_repository.list(user, document_type)
+        return self.document_repository.list_no_content(user, document_type)
 
-    def get_by_id(self, blob_id: str):
-        return self.document_repository.get_by_id(blob_id)
+    def get_by_id(self, blob_id: str, ):
+        return self.document_repository.get_by_id_no_content(blob_id)
+
+    def get_stream_by_id(self, blob_id: str):
+        return self.document_repository.get_stream_by_id(blob_id)

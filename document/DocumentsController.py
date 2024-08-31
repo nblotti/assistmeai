@@ -1,11 +1,10 @@
-from typing import Annotated, Optional, List
+from typing import Annotated, Optional
 
 from fastapi import UploadFile, File, APIRouter, Form, Depends, HTTPException, Query
 from starlette import status
 from starlette.responses import StreamingResponse, Response
 
 from DependencyManager import document_manager_provider
-from document import Document
 from document.Document import DocumentType
 from document.DocumentManager import DocumentManager
 
@@ -22,7 +21,7 @@ document_manager_dep = Annotated[DocumentManager, Depends(document_manager_provi
 async def upload_file(
         document_manager: document_manager_dep,
         owner: str = Form(...),
-        document_type: DocumentType = Form(DocumentType.DOCUMENT,alias='type'),
+        document_type: DocumentType = Form(DocumentType.DOCUMENT, alias='type'),
         file: UploadFile = File(...)
 ):
     contents = await file.read()
@@ -71,7 +70,7 @@ async def list_documents(
 @router_file.get("/{blob_id}/")
 async def download_blob(document_manager: document_manager_dep, blob_id: str,
                         response: Response):
-    blob_data = document_manager.get_by_id(blob_id)
+    blob_data = document_manager.get_stream_by_id(blob_id)
 
     if blob_data:
         res = blob_data
@@ -84,4 +83,3 @@ async def download_blob(document_manager: document_manager_dep, blob_id: str,
         # Stream the content
     else:
         return {"error": "Blob not found"}
-
