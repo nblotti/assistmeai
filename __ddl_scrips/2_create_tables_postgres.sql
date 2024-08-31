@@ -7,6 +7,9 @@ CREATE TABLE document
     created_on  TIMESTAMP DEFAULT TO_TIMESTAMP(TO_CHAR(CURRENT_TIMESTAMP, 'DD.MM.YYYY'), 'DD.MM.YYYY'),
     owner VARCHAR(255),
     perimeter VARCHAR(255),
+    summary     numeric,
+    summary_status  VARCHAR(255) NOT NULL DEFAULT 'NONE',
+    document_type VARCHAR(255) NOT NULL DEFAULT 'SUMMARY',
     document    BYTEA
 );
 

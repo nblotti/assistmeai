@@ -1,8 +1,7 @@
 from pydantic import BaseModel
 
 
-class DownloadBlobRequest(BaseModel):
-    url: str
+class UploadUrlDetails(BaseModel):
     url: str
     tags: str
     owner: str

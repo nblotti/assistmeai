@@ -2,6 +2,7 @@ from assistants.AssistantsRepository import AssistantsRepository
 from chat.ChatManager import ChatManager
 
 from conversation.ConversationRepository import ConversationRepository
+from document.DocumentManager import DocumentManager
 from document.DocumentsRepository import DocumentsRepository
 from embeddings.EmbeddingRepository import EmbeddingRepository
 from message.MessageRepository import MessageRepository
@@ -13,7 +14,7 @@ from sharing.SharedGroupUserRepository import SharedGroupUserRepository
 
 
 class EmbeddingRepositoryProvider:
-    def get_dependency(self) -> EmbeddingRepository:
+    def get_dependency(self):
         return EmbeddingRepository()
 
 
@@ -75,6 +76,16 @@ class SharedGroupDocumentRepositoryDAOProvider:
         return SharedGroupDocumentRepository()
 
 
+class DocumentManagerProvider:
+
+    def __init__(self, document_repository: DocumentsRepository, embedding_repository: EmbeddingRepository):
+        self.document_repository = document_repository
+        self.embedding_repository = embedding_repository
+
+    def get_dependency(self):
+        return DocumentManager(self.document_repository, self.embedding_repository)
+
+
 document_dao_provider = DocumentDAOProvider()
 conversation_dao_provider = ConversationDAOProvider()
 message_dao_provider = MessageDAOProvider()
@@ -84,3 +95,6 @@ assistants_dao_provider = AssistantsDAOProvider()
 shared_group_dao_provider = SharedGroupRepositoryDAOProvider()
 shared_group_user_dao_provider = SharedGroupUserRepositoryDAOProvider()
 share_group_document_dao_provider = SharedGroupDocumentRepositoryDAOProvider()
+embeddings_dao_provider = EmbeddingRepositoryProvider()
+document_manager_provider = DocumentManagerProvider(document_dao_provider.get_dependency(),
+                                                    embeddings_dao_provider.get_dependency())

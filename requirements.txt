@@ -13,6 +13,4 @@ psycopg2 >= 2.9.9
 langchain-openai >= 0.1.9
 pyjwt[crypto] >= 2.9.0
 ldap3 >= 2.9.1
-playwright >= 1.46.0
-reportlab >= 4.2.2
 langchain-core >= 0.2.35

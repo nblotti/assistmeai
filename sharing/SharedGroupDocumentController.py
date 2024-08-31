@@ -3,7 +3,7 @@ from typing import Annotated, List
 
 from fastapi import APIRouter, Depends
 
-from DependencyManager import share_group_document_dao_provider, document_dao_provider
+from DependencyManager import share_group_document_dao_provider, document_dao_provider, embeddings_dao_provider
 from document.DocumentsRepository import DocumentsRepository
 from embeddings.EmbeddingRepository import EmbeddingRepository
 from sharing.SharedGroupDocument import SharedGroupDocument
@@ -20,7 +20,7 @@ router_shared_group_document = APIRouter(
 shared_group_document_repository_dep = Annotated[
     SharedGroupDocumentRepository, Depends(share_group_document_dao_provider.get_dependency)]
 document_repository_dep = Annotated[DocumentsRepository, Depends(document_dao_provider.get_dependency)]
-embeddings_repository_dep = Annotated[EmbeddingRepository, Depends(EmbeddingRepository)]
+embeddings_repository_dep = Annotated[EmbeddingRepository, Depends(embeddings_dao_provider.get_dependency)]
 
 
 @router_shared_group_document.post("/", response_model=SharedGroupDocument)

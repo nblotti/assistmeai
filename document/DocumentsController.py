@@ -1,21 +1,13 @@
-import io
-import os
-from typing import Annotated, Optional
-from uuid import uuid4
+from typing import Annotated, Optional, List
 
-from fastapi import UploadFile, File, APIRouter, Form, Depends, HTTPException
-from langchain_community.document_loaders import AsyncHtmlLoader
-from langchain_community.document_transformers import BeautifulSoupTransformer
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus import SimpleDocTemplate
-from reportlab.platypus.para import Paragraph
+from fastapi import UploadFile, File, APIRouter, Form, Depends, HTTPException, Query
+from starlette import status
 from starlette.responses import StreamingResponse, Response
 
-from DependencyManager import document_dao_provider
-from document.DocumentsRepository import DocumentsRepository
-from document.DownloadBlobRequest import DownloadBlobRequest
-from embeddings.EmbeddingRepository import EmbeddingRepository
+from DependencyManager import document_manager_provider
+from document import Document
+from document.Document import DocumentType
+from document.DocumentManager import DocumentManager
 
 router_file = APIRouter(
     prefix="/document",
@@ -23,72 +15,63 @@ router_file = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-document_repository_dep = Annotated[DocumentsRepository, Depends(document_dao_provider.get_dependency)]
-embeddings_repository_dep = Annotated[EmbeddingRepository, Depends(EmbeddingRepository)]
+document_manager_dep = Annotated[DocumentManager, Depends(document_manager_provider.get_dependency)]
 
 
 @router_file.post("/")
-async def upload_file(documents_repository: document_repository_dep,
-                      embedding_repository: embeddings_repository_dep,
-                      owner: str = Form(...), file: UploadFile = File(...)):
+async def upload_file(
+        document_manager: document_manager_dep,
+        owner: str = Form(...),
+        document_type: DocumentType = Form(DocumentType.DOCUMENT,alias='type'),
+        file: UploadFile = File(...)
+):
     contents = await file.read()
-
-    document = documents_repository.save(file.filename, owner, contents)
-
-    temp_file = "./" + document.id + ".document"
-    with open(temp_file, "wb") as file_w:
-        file_w.write(contents)
-
-    embedding_repository.create_embeddings_for_pdf(document.id, owner, temp_file, file.filename)
-
-    delete_temporary_disk_file(temp_file)
-
-    return document
-
-
-'''
-    This method deletes a temporary file on the HD
-'''
-
-
-def delete_temporary_disk_file(file_path):
-    try:
-        os.remove(file_path)
-        print(f"File '{file_path}' deleted successfully.")
-    except OSError as e:
-        print(f"Error deleting file '{file_path}': {e}")
+    return await document_manager.upload_file(owner, file.filename, contents, document_type)
 
 
 @router_file.delete("/{blob_id}/")
 def delete(
-        documents_repository: document_repository_dep,
+        document_manager: document_manager_dep,
         blob_id: str):
-    documents_repository.delete_by_id(blob_id)
+    document_manager.delete(blob_id)
+
     return Response(status_code=200)
 
 
 @router_file.delete("/")
 async def delete_all(
-        documents_repository: document_repository_dep,
-        embedding_repository: embeddings_repository_dep
+        document_manager: document_manager_dep
 ):
-    documents_repository.delete_all()
-    embedding_repository.delete_all_embeddings()
+    document_manager.delete_all()
+    document_manager.delete_all()
 
     return Response(status_code=200)
 
 
 @router_file.get("/")
-async def list_document(documents_repository: document_repository_dep, user: Optional[str] = None):
+async def list_document(document_manager: document_manager_dep, user: Optional[str] = None):
     if user is None:
         return Response(status_code=404)
-    return documents_repository.list(user)
+    return document_manager.list_documents(user)
+
+
+@router_file.get("/users/{user}/documents")
+async def list_documents(
+        user: str,
+        document_manager: document_manager_dep,
+        document_type: DocumentType = Query(DocumentType.DOCUMENT, alias='type'),
+
+):
+    documents = document_manager.list_documents_by_type(user, document_type=document_type)
+    if not documents:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No documents found for this user")
+    return documents
 
 
 @router_file.get("/{blob_id}/")
-async def download_blob(documents_repository: document_repository_dep, blob_id: str,
+async def download_blob(document_manager: document_manager_dep, blob_id: str,
                         response: Response):
-    blob_data = documents_repository.get_by_id(blob_id)
+    blob_data = document_manager.get_by_id(blob_id)
 
     if blob_data:
         res = blob_data
@@ -102,74 +85,3 @@ async def download_blob(documents_repository: document_repository_dep, blob_id: 
     else:
         return {"error": "Blob not found"}
 
-
-@router_file.post("/web/")
-async def download_blob(request: DownloadBlobRequest, documents_repository: document_repository_dep,
-                        embedding_repository: embeddings_repository_dep):
-    try:
-        uuid_str = str(uuid4())
-        buffer = io.BytesIO()
-        url = request.url
-        tags = request.tags
-        owner = request.owner
-        title = request.title
-
-        # Load and transform documents
-        loader = AsyncHtmlLoader(url)
-        docs = loader.load()  # Make sure to await asynchronous loader
-
-        bs_transformer = BeautifulSoupTransformer()
-        if len(tags) != 0:
-            docs_transformed = bs_transformer.transform_documents(docs, tags_to_extract=tags.split(","), remove_lines=False)
-        else:
-            docs_transformed = bs_transformer.transform_documents(docs)
-        # result = chain.invoke({"input": docs_transformed})
-
-        generate_pdf(docs_transformed[0].page_content, buffer)
-
-        # Get the byte data from the buffer
-        pdf_bytes = buffer.getvalue()
-        buffer.close()
-
-        if len(title) == 0:
-            title = uuid_str
-
-        temp_file = f"./{title}.document"
-
-        # Write buffer content to a file on disk
-        with open(temp_file, 'wb') as f:
-            f.write(pdf_bytes)
-
-        # Save document in repository
-        document = documents_repository.save(temp_file, owner, pdf_bytes)
-
-        # Create embeddings
-        embedding_repository.create_embeddings_for_pdf(document.id, owner, temp_file, title)
-
-        delete_temporary_disk_file(temp_file)
-
-        return {"status": "success", "uuid": uuid_str, "content": docs_transformed[0].page_content}
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-def generate_pdf(result, buffer):
-    # Create a SimpleDocTemplate with the buffer and A4 page size
-    doc = SimpleDocTemplate(buffer, pagesize=A4)
-
-    # Get the sample styles for the paragraphs
-    styles = getSampleStyleSheet()
-    style = styles['Normal']
-
-    # Create a list to hold the story elements (paragraphs)
-    story = []
-
-    # Split the content into paragraphs
-    paragraphs = result.split('\n')
-    for paragraph in paragraphs:
-        # Add each paragraph to the story list
-        story.append(Paragraph(paragraph, style))
-
-    # Build the PDF with the story elements
-    doc.build(story)

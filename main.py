@@ -25,7 +25,7 @@ from sharing.SharedGroupController import router_group
 from sharing.SharedGroupDocumentController import router_shared_group_document
 from sharing.SharedGroupUserController import router_shared_group_user
 
-config.set_verbose(True)
+config.set_verbose(False)
 # CORS origins allowed
 origins = ["http://localhost:4200", "*"]
 

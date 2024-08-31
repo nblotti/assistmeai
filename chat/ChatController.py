@@ -1,25 +1,14 @@
-import asyncio
-import logging
-import os
-import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Query, Depends, HTTPException
 from langchain.chains.retrieval_qa.base import RetrievalQA
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_core.output_parsers import JsonOutputParser, StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.tools import tool
-from langchain_text_splitters import CharacterTextSplitter
-from pydantic.v1 import BaseModel, Field
 from starlette.responses import JSONResponse
 
-from DependencyManager import message_dao_provider, conversation_dao_provider
-from chat.azure_openai import chat_gpt_35, chat_gpt_4o
+from DependencyManager import message_dao_provider, conversation_dao_provider, document_manager_provider
+from chat.azure_openai import chat_gpt_35
 from conversation.Conversation import Conversation
 from conversation.ConversationRepository import ConversationRepository
-from document.DocumentsController import embeddings_repository_dep, document_repository_dep
+from document.DocumentManager import DocumentManager
 from embeddings.CustomAzurePGVectorRetriever import CustomAzurePGVectorRetriever
 from embeddings.EmbeddingsTools import QueryType
 from memories.SqlMessageHistory import build_memory
@@ -40,6 +29,7 @@ Command entry point
 
 message_repository_dep = Annotated[MessageRepository, Depends(message_dao_provider.get_dependency)]
 conversation_repository_dep = Annotated[ConversationRepository, Depends(conversation_dao_provider.get_dependency)]
+document_manager_dep = Annotated[DocumentManager, Depends(document_manager_provider.get_dependency)]
 
 
 @chat_ai.get("/command/")
@@ -84,73 +74,6 @@ async def message(message_repository: message_repository_dep, conversation_repos
         return JSONResponse(content={"result": result["result"]})
 
 
-class Topic(BaseModel):
-    name: str = Field(description=" The name of the topic that will be summarized")
-
-
-class DocumentSummary(BaseModel):
-    content: str = Field(description="The list of topic that have been summarized in the document")
-
-
-@tool("summary-tool")
-def summarize_tool(topic: Topic, summary: DocumentSummary):
-    """This tool is used to write a concise summary of each topic in the input"""
-    logging.debug("{topic} {summary}")
-    return topic, summary
-
-
 @chat_ai.get("/summarize/{blob_id}/")
-async def summarize(documents_repository: document_repository_dep, embedding_repository: embeddings_repository_dep,
-                    blob_id: str):
-    content = documents_repository.get_by_id(blob_id)
-    if not content:
-        raise HTTPException(status_code=404, detail="Document not found")
-
-    path = "./" + str(uuid.uuid4())
-    temp_pdf_file = path + ".pdf"
-
-    with open(temp_pdf_file, "wb") as file_w:
-        file_w.write(content[1])
-
-    loader = PyPDFLoader(temp_pdf_file)
-    pages = loader.load()
-
-    text_splitter = CharacterTextSplitter(separator="\n", chunk_size=3000, chunk_overlap=500, length_function=len)
-    split_docs = text_splitter.split_documents(pages)
-
-    tools = [summarize_tool]
-
-    llm_with_tools = chat_gpt_4o.bind_tools(tools)
-
-    tasks = [llm_with_tools.ainvoke(doc.page_content) for doc in split_docs[:2]]
-    results = await asyncio.gather(*tasks)
-
-    try:
-        os.remove(temp_pdf_file)
-        print(f"File '{temp_pdf_file}' deleted successfully.")
-    except OSError as e:
-        print(f"Error deleting file '{temp_pdf_file}': {e}")
-
-    messages = [SystemMessage("Given the results of a series of tool call, Your task is to format the responses."
-                              "Start with the topic name and then add the summary. Split the topics by two empty lines"
-                              "Your response is going to be used to create a pdf, so make sure that you use the right"
-                              "format.")]
-
-    for result in results:
-        messages.append(result)
-        for tool_call in result.tool_calls:
-            selected_tool = {"summary-tool": summarize_tool}[tool_call["name"].lower()]
-            tool_msg = selected_tool.invoke(tool_call)
-            messages.append(tool_msg)
-
-    summary = llm_with_tools.invoke(messages)
-
-    chat_template = ChatPromptTemplate.from_messages(messages)
-
-    parser = StrOutputParser()
-
-    chain = chat_template | llm_with_tools | parser
-
-    result_final = chain.invoke({})
-
-    return result_final
+async def summarize(document_manager: document_manager_dep, blob_id: str):
+    return await document_manager.summarize(blob_id)
