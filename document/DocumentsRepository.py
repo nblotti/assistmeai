@@ -2,7 +2,7 @@ import os
 
 from psycopg2 import connect, Binary, DatabaseError
 
-from document.Document import Document
+from document.Document import Document, DocumentType, Jobstatus
 
 
 class DocumentsRepository:
@@ -10,8 +10,8 @@ class DocumentsRepository:
 
     SELECT_DOCUMENT_QUERY = """SELECT name, document ,owner, perimeter,created_on, document_type, summary_id, summary_status FROM document WHERE id=%s """
 
-    LIST_PDF_QUERY_BY_USER_AND_TYPE = """SELECT id::text, name, owner , perimeter,created_on FROM document 
-    where owner=%s and document_type=%"""
+    LIST_PDF_QUERY_BY_USER_AND_TYPE = """SELECT id::text, name, owner , perimeter,created_on,summary_id, summary_status FROM document 
+    where owner=%s and document_type=%s"""
 
     DELETE_PDF_QUERY = """DELETE FROM document WHERE id = %s"""
 
@@ -82,9 +82,9 @@ class DocumentsRepository:
                                     owner=result[2],
                                     perimeter=result[3],
                                     created_on=result[4],
-                                    document_type=result[5],
+                                    document_type=DocumentType(result[5]),
                                     summary_id=result[6],
-                                    summary_status=result[7])
+                                    summary_status=Jobstatus(result[7]))
                 return document
             else:
                 return None
@@ -99,7 +99,7 @@ class DocumentsRepository:
             if conn:
                 conn.close()
 
-    def list(self, user, document_type: str):
+    def list(self, user, document_type: DocumentType):
         """List all documents"""
         conn = None
         cursor = None
@@ -119,7 +119,7 @@ class DocumentsRepository:
                          created_on=row[4],
                          document_type=document_type,
                          summary_id=row[5],
-                         summary_status=row[6])
+                         summary_status=Jobstatus(row[6]))
                 for row in result
             ]
         except DatabaseError as e:
