@@ -55,3 +55,9 @@ class DocumentManager:
 
     def get_stream_by_id(self, blob_id: str):
         return self.document_repository.get_stream_by_id(blob_id)
+
+    def delete_embeddings_by_id(self, blob_id):
+        return self.document_repository.delete_embeddings_by_id(blob_id)
+
+    def create_embeddings_for_pdf(self, blob_id, new_perimeter, temp_file, name):
+        return self.embedding_repository.create_embeddings_for_pdf(blob_id, new_perimeter, temp_file, name)
