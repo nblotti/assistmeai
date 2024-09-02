@@ -63,7 +63,7 @@ async def list_documents(
 ):
     documents = document_manager.list_documents_by_type(user, document_type=document_type)
     if not documents:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No documents found for this user")
+        return []
     return documents
 
 
