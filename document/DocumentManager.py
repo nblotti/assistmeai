@@ -1,4 +1,7 @@
 import os
+import uuid
+
+import pypandoc
 
 from document.Document import DocumentType
 from document.DocumentsRepository import DocumentsRepository
@@ -11,16 +14,42 @@ class DocumentManager:
         self.document_repository = document_repository
         self.embedding_repository = embedding_repository
 
+    async def convert_and_upload_file(self, owner: str, filename: str, contents: bytes,
+                                      document_type: DocumentType = DocumentType.DOCUMENT):
+
+        path = "./" + str(uuid.uuid4())
+        temp_file = path + ".document"
+        temp_pdf_file = path + ".pdf"
+
+        with open(temp_file, "wb") as file_w:
+            file_w.write(contents)
+
+        pypandoc.convert_file(source_file=temp_file, to='pdf', format="docx", outputfile=temp_pdf_file,
+                              extra_args=['--pdf-engine=lualatex'])
+
+        # Read the PDF file in binary mode
+        with open(temp_pdf_file, 'rb') as file:
+            binary_content = file.read()
+
+        self.delete_temporary_disk_file(temp_file)
+        self.delete_temporary_disk_file(temp_pdf_file)
+
+        file_name_pdf_extension = filename[:-5] + ".pdf"  # Remove last 5 characters (".docx")
+
+        return await self.upload_file(owner, file_name_pdf_extension, binary_content, document_type)
+
     async def upload_file(self, owner: str, filename: str, contents: bytes,
                           document_type: DocumentType = DocumentType.DOCUMENT):
 
-        document = self.document_repository.save(filename, owner, contents, document_type)
+        file_name_pdf_extension = filename[:-4]  # Remove last 5 characters (".docx")
+        document = self.document_repository.save(file_name_pdf_extension, owner, contents, document_type)
 
         temp_file = "./" + document.id + ".document"
         with open(temp_file, "wb") as file_w:
             file_w.write(contents)
 
-        self.embedding_repository.create_embeddings_for_pdf(document.id, owner, temp_file, filename)
+
+        self.embedding_repository.create_embeddings_for_pdf(document.id, owner, temp_file, file_name_pdf_extension)
 
         self.delete_temporary_disk_file(temp_file)
 
