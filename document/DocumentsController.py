@@ -3,7 +3,6 @@ from enum import Enum
 from typing import Annotated, Optional
 
 from fastapi import UploadFile, File, APIRouter, Form, Depends, Query
-from magic import from_buffer
 from starlette.responses import StreamingResponse, Response
 
 from DependencyManager import document_manager_provider
@@ -29,21 +28,13 @@ async def upload_file(
     enum_type = FileType.PDF
 
     contents = await file.read()
-    file_type = from_buffer(contents, mime=True)
 
-    enum_type_mapping = {
-        FileType.PDF.value: FileType.PDF,
-        FileType.DOCX.value: FileType.DOCX,
-    }
-    enum_type = enum_type_mapping.get(file_type, None)
-
-    if not enum_type:
-        if file.filename.endswith(".pdf"):
-            enum_type = FileType.PDF
-        elif file.filename.endswith(".docx"):
-            enum_type = FileType.DOCX
-        else:
-            raise ValueError("Unsupported file type")
+    if file.filename.endswith(".pdf"):
+        enum_type = FileType.PDF
+    elif file.filename.endswith(".docx"):
+        enum_type = FileType.DOCX
+    else:
+        raise ValueError("Unsupported file type")
 
     if enum_type == FileType.DOCX:
         return await document_manager.convert_and_upload_file(owner, file.filename, contents, document_type)
