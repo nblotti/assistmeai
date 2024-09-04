@@ -14,4 +14,3 @@ langchain-openai >= 0.1.9
 pyjwt[crypto] >= 2.9.0
 ldap3 >= 2.9.1
 langchain-core >= 0.2.35
-pypandoc >= 1.13

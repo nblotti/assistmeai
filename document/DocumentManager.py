@@ -1,7 +1,6 @@
 import os
+import subprocess
 import uuid
-
-import pypandoc
 
 from document.Document import DocumentType
 from document.DocumentsRepository import DocumentsRepository
@@ -18,14 +17,13 @@ class DocumentManager:
                                       document_type: DocumentType = DocumentType.DOCUMENT):
 
         path = "./" + str(uuid.uuid4())
-        temp_file = path + ".document"
+        temp_file = path + ".docx"
         temp_pdf_file = path + ".pdf"
 
         with open(temp_file, "wb") as file_w:
             file_w.write(contents)
 
-        pypandoc.convert_file(source_file=temp_file, to='pdf', format="docx", outputfile=temp_pdf_file,
-                              extra_args=['--pdf-engine=lualatex'])
+        binary_content = subprocess.check_output(['libreoffice', '--headless', '--convert-to', 'pdf', temp_file])
 
         # Read the PDF file in binary mode
         with open(temp_pdf_file, 'rb') as file:
@@ -47,7 +45,6 @@ class DocumentManager:
         temp_file = "./" + document.id + ".document"
         with open(temp_file, "wb") as file_w:
             file_w.write(contents)
-
 
         self.embedding_repository.create_embeddings_for_pdf(document.id, owner, temp_file, file_name_pdf_extension)
 

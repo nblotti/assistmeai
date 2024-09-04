@@ -22,6 +22,10 @@ RUN apk update && \
  python3 -m pip install -r requirements.txt --no-cache-dir && \
  apk --purge del .build-deps
 
+RUN apk add openjdk17-jre-headless
+RUN apk  add --no-cache libreoffice
+RUN apk add --no-cache msttcorefonts-installer fontconfig
+RUN update-ms-fonts
 
 
 

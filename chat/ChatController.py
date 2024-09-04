@@ -5,7 +5,7 @@ from langchain.chains.retrieval_qa.base import RetrievalQA
 from starlette.responses import JSONResponse
 
 from DependencyManager import message_dao_provider, conversation_dao_provider, document_manager_provider
-from chat.azure_openai import chat_gpt_35
+from chat.azure_openai import chat_gpt_4o
 from conversation.Conversation import Conversation
 from conversation.ConversationRepository import ConversationRepository
 from document.DocumentManager import DocumentManager
@@ -50,7 +50,7 @@ async def message(message_repository: message_repository_dep, conversation_repos
     # Choose the LLM chain
     if rag_retriever:
         chain = RetrievalQA.from_chain_type(
-            llm=chat_gpt_35,
+            llm=chat_gpt_4o,
             # verbose=True,
             retriever=rag_retriever,
             return_source_documents=True,
