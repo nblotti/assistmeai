@@ -16,6 +16,7 @@ class Jobstatus(str, Enum):
 class DocumentType(str, Enum):
     SUMMARY = "SUMMARY"
     DOCUMENT = "DOCUMENT"
+    ALL = "ALL"
 
 
 class Document(BaseModel):

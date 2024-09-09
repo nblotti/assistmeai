@@ -15,6 +15,7 @@ from jwt import ExpiredSignatureError, InvalidTokenError
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from assistants.AssistantsController import router_assistant
+from assistants.AssistantsDocumentController import router_assistant_document
 from chat.ChatController import chat_ai
 from conversation.ConversationController import router_conversation
 from document.DocumentsController import router_file
@@ -109,4 +110,6 @@ app.include_router(router_group)
 app.include_router(router_shared_group_user)
 
 app.include_router(router_shared_group_document)
+
+app.include_router(router_assistant_document)
 

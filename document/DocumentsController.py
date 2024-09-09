@@ -1,4 +1,3 @@
-from argparse import FileType
 from enum import Enum
 from typing import Annotated, Optional
 
@@ -33,6 +32,10 @@ async def upload_file(
         enum_type = FileType.PDF
     elif file.filename.endswith(".docx"):
         enum_type = FileType.DOCX
+    elif file.filename.endswith(".xlsx"):
+        enum_type = FileType.XLSX
+    elif file.filename.endswith(".pptx"):
+        enum_type = FileType.PPTX
     else:
         raise ValueError("Unsupported file type")
 
@@ -103,3 +106,5 @@ async def download_blob(document_manager: document_manager_dep, blob_id: str,
 class FileType(Enum):
     PDF = 'application/pdf'
     DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    PPTX = 'application/vnd.openxmlformats-officedocument.presentationml.presentation'

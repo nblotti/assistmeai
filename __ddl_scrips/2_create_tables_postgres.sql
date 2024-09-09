@@ -2,15 +2,15 @@
 -- document & category
 CREATE TABLE document
 (
-    id          SERIAL PRIMARY KEY,
-    name        VARCHAR(255),
-    created_on  TIMESTAMP DEFAULT TO_TIMESTAMP(TO_CHAR(CURRENT_TIMESTAMP, 'DD.MM.YYYY'), 'DD.MM.YYYY'),
-    owner VARCHAR(255),
-    perimeter VARCHAR(255),
-    summary     numeric,
-    summary_status  VARCHAR(255) NOT NULL DEFAULT 'NONE',
-    document_type VARCHAR(255) NOT NULL DEFAULT 'SUMMARY',
-    document    BYTEA
+    id             SERIAL PRIMARY KEY,
+    name           VARCHAR(255),
+    created_on     TIMESTAMP             DEFAULT TO_TIMESTAMP(TO_CHAR(CURRENT_TIMESTAMP, 'DD.MM.YYYY'), 'DD.MM.YYYY'),
+    owner          VARCHAR(255),
+    perimeter      VARCHAR(255),
+    summary        numeric,
+    summary_status VARCHAR(255) NOT NULL DEFAULT 'NONE',
+    document_type  VARCHAR(255) NOT NULL DEFAULT 'SUMMARY',
+    document       BYTEA
 );
 
 CREATE SEQUENCE owner_sequence;
@@ -71,6 +71,19 @@ CREATE TABLE assistants
     description      TEXT,
     gpt_model_number TEXT DEFAULT '3.5'-- Adding the model_number column at the end
 );
+
+CREATE TABLE assistants_document
+(
+    id            SERIAL PRIMARY KEY, -- SERIAL is equivalent to AUTO_INCREMENT in MySQL
+    assistant_id  INTEGER,
+    document_id   INTEGER,
+    document_name VARCHAR(255),
+    FOREIGN KEY (assistant_id) REFERENCES assistants (id) ON DELETE CASCADE,
+    FOREIGN KEY (document_id) REFERENCES document (id) ON DELETE CASCADE
+);
+
+
+
 CREATE OR REPLACE FUNCTION delete_related_conversation()
     RETURNS TRIGGER AS
 $$

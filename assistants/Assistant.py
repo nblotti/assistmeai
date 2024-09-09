@@ -12,3 +12,4 @@ class Assistant(BaseModel):
     conversation_id: Optional[str] = ""
     description: Optional[str] = ""
     gpt_model_number: Optional[str] = "3.5"
+    use_documents: bool = False

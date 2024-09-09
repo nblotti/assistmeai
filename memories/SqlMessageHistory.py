@@ -1,7 +1,6 @@
-from langchain_core.messages import BaseMessage
 from langchain.memory import ConversationBufferMemory
 from langchain.schema import BaseChatMessageHistory
-
+from langchain_core.messages import BaseMessage
 
 from message.MessageRepository import MessageRepository
 
@@ -24,8 +23,15 @@ class SqlMessageHistory(BaseChatMessageHistory):
         return self.message_repository.save(self.conversation_id, message)
 
     def clear(self):
-        #TODO NBL : not sure that it is required, but to check
+        # TODO NBL : not sure that it is required, but to check
         pass
+
+
+def build_agent_memory(message_repository: MessageRepository, conversation_id):
+    return SqlMessageHistory(
+        conversation_id=conversation_id,
+        message_repository=message_repository,
+    )
 
 
 def build_memory(message_repository: MessageRepository, conversation_id):

@@ -17,7 +17,7 @@ class DocumentManager:
                                       document_type: DocumentType = DocumentType.DOCUMENT):
 
         path = "./" + str(uuid.uuid4())
-        temp_file = path + ".docx"
+        temp_file = path + ".document"
         temp_pdf_file = path + ".pdf"
 
         with open(temp_file, "wb") as file_w:
@@ -87,3 +87,6 @@ class DocumentManager:
 
     def create_embeddings_for_pdf(self, blob_id, new_perimeter, temp_file, name):
         return self.embedding_repository.create_embeddings_for_pdf(blob_id, new_perimeter, temp_file, name)
+
+    def get_embeddings_by_ids(self, blob_ids: [str]):
+        return self.document_repository.get_embeddings_by_ids(blob_ids)

@@ -1,3 +1,4 @@
+from assistants.AssistantDocumentRepository import AssistantDocumentRepository
 from assistants.AssistantsRepository import AssistantsRepository
 from chat.ChatManager import ChatManager
 
@@ -76,6 +77,12 @@ class SharedGroupDocumentRepositoryDAOProvider:
         return SharedGroupDocumentRepository()
 
 
+class AssistantDocumentRepositoryDAOProvider:
+
+    def get_dependency(self):
+        return AssistantDocumentRepository()
+
+
 class DocumentManagerProvider:
 
     def __init__(self, document_repository: DocumentsRepository, embedding_repository: EmbeddingRepository):
@@ -98,3 +105,4 @@ share_group_document_dao_provider = SharedGroupDocumentRepositoryDAOProvider()
 embeddings_dao_provider = EmbeddingRepositoryProvider()
 document_manager_provider = DocumentManagerProvider(document_dao_provider.get_dependency(),
                                                     embeddings_dao_provider.get_dependency())
+assistant_document_dao_provider = AssistantDocumentRepositoryDAOProvider()

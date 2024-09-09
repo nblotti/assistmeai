@@ -12,14 +12,19 @@ class DocumentsRepository:
 
     SELECT_DOCUMENT_NO_CONTENT_QUERY = """SELECT id::text, name, owner , perimeter,created_on,document_type,summary_id, summary_status FROM document WHERE id=%s """
 
+    LIST_DOCUMENT_NO_CONTENT_BY_USER_QUERY = """SELECT id::text, name, owner , perimeter,created_on,summary_id, summary_status FROM document 
+    where owner=%s"""
+
     LIST_DOCUMENT_NO_CONTENT_BY_USER_AND_TYPE_QUERY = """SELECT id::text, name, owner , perimeter,created_on,summary_id, summary_status FROM document 
-    where owner=%s and document_type=%s"""
+        where owner=%s and document_type=%s"""
 
     DELETE_PDF_QUERY = """DELETE FROM document WHERE id = %s"""
 
     DELETE_ALL_QUERY = """DELETE FROM document"""
 
     DELETE_EMBEDDING_QUERY = """DELETE FROM langchain_pg_embedding WHERE cmetadata ->>'blob_id' =%s;"""
+
+    GET_EMBEDDING_QUERY = """SELECT cmetadata ->>'text' FROM langchain_pg_embedding WHERE cmetadata ->>'blob_id' in %s;"""
 
     db_name: str
     db_host: str
@@ -132,7 +137,10 @@ class DocumentsRepository:
             conn = self.build_connection()
             cursor = conn.cursor()
 
-            cursor.execute(self.LIST_DOCUMENT_NO_CONTENT_BY_USER_AND_TYPE_QUERY, (user, document_type))
+            if document_type == DocumentType.ALL:
+                cursor.execute(self.LIST_DOCUMENT_NO_CONTENT_BY_USER_QUERY, (user,))
+            else:
+                cursor.execute(self.LIST_DOCUMENT_NO_CONTENT_BY_USER_AND_TYPE_QUERY, (user, document_type))
             result = cursor.fetchall()
 
             documents = [
@@ -173,6 +181,20 @@ class DocumentsRepository:
         conn.commit()
         cursor.close()
         conn.close()
+
+    def get_embeddings_by_ids(self, blob_ids: [str]):
+        conn = self.build_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute(self.GET_EMBEDDING_QUERY,
+                           (tuple(blob_ids),))  # Secure way to pass the list parameter to the query
+            results = cursor.fetchall()
+        finally:
+            conn.commit()  # Commit the transaction if any
+            cursor.close()
+            conn.close()
+
+        return results
 
     def delete_all(self):
         conn = self.build_connection()

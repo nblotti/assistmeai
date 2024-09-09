@@ -1,17 +1,20 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
-from langchain.chains.llm import LLMChain
-from langchain_core.prompts import PromptTemplate
+from langchain.agents import create_openai_tools_agent, AgentExecutor
+from langchain_core.messages import HumanMessage
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnableWithMessageHistory
 from starlette.responses import JSONResponse
 
 from DependencyManager import conversation_dao_provider, assistants_dao_provider, message_dao_provider
 from assistants import AssistantsRepository
 from assistants.Assistant import Assistant
 from chat.azure_openai import chat_gpt_35, chat_gpt_4o
+from chat.tools import summarize, web_search, get_date
 from conversation import ConversationRepository
 from conversation.Conversation import Conversation
-from memories.SqlMessageHistory import build_memory
+from memories.SqlMessageHistory import build_agent_memory
 from message import MessageRepository
 
 router_assistant = APIRouter(
@@ -27,8 +30,8 @@ message_repository_dep = Annotated[MessageRepository, Depends(message_dao_provid
 
 @router_assistant.get("/command/")
 async def message(message_repository: message_repository_dep, conversation_repository: conversation_repository_dep,
-                  assistants_repository: assistants_repository_dep, command: str,
-                  conversation_id: str):
+                  assistants_repository: assistants_repository_dep,
+                  command: str, conversation_id: str, perimeter: str = None):
     # Get the current conversation and build document memory
     assistant: Assistant = assistants_repository.get_assistant_by_conversation_id(conversation_id)
 
@@ -37,32 +40,66 @@ async def message(message_repository: message_repository_dep, conversation_repos
     else:
         local_chat = chat_gpt_35
 
-    memory = build_memory(message_repository, assistant.conversation_id)
-    # Load a simpler LLMChain without retriever
-    template = """
-    {system}
-    {chat_history}
-    Human: {query}
-    Chatbot:"""
-    prompt = PromptTemplate(
-        input_variables=["system", "chat_history", "query"],
-        template=template
-    )
-    chain = LLMChain(
-        prompt=prompt,
-        llm=local_chat,
-        #verbose=True,
-        memory=memory,
-        output_key="result"
+    memory = build_agent_memory(message_repository, assistant.conversation_id)
+
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                "{}.\nYou have access to tools. Use them if if need to.Somme tools will require an assistant id which is {}."
+                "If you don't know, do not invent, just say it.".format(assistant.description, assistant.id)
+
+            ),
+            ("placeholder", "{messages}"),
+            ("placeholder", "{agent_scratchpad}"),
+        ]
     )
 
-    # Invoke the chain with the command/query
-    try:
-        result = chain.invoke({"system": assistant.description, "query": command})
-        return JSONResponse(content={"result": result["result"]})
-    except Exception as e:
-        print(f"Error occurred: {e}")
-        raise
+    if assistant.use_documents:
+
+        tools = [get_date, web_search, summarize]
+
+        agent = create_openai_tools_agent(llm=local_chat, tools=tools, prompt=prompt)
+        agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+
+        conversational_agent_executor = RunnableWithMessageHistory(
+            agent_executor,
+            lambda session_id: memory,
+            input_messages_key="messages",
+            output_messages_key="output",
+        )
+
+        try:
+            result = conversational_agent_executor.invoke(
+                {"messages": [HumanMessage(command)]},
+                {"configurable": {"session_id": "unused"}},
+            )
+            return JSONResponse(content={"result": result["output"]})
+        except Exception as e:
+            print(f"Error occurred: {e}")
+            raise
+
+    else:
+        tools = [get_date, web_search]
+        agent = create_openai_tools_agent(llm=local_chat, tools=tools, prompt=prompt)
+        agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+
+        conversational_agent_executor = RunnableWithMessageHistory(
+            agent_executor,
+            lambda session_id: memory,
+            input_messages_key="messages",
+            output_messages_key="output",
+        )
+
+        try:
+            result = conversational_agent_executor.invoke(
+                {"messages": [HumanMessage(f"'''{command}'''")]},
+                {"configurable": {"session_id": "unused"}},
+            )
+            return JSONResponse(content={"result": result["output"]})
+        except Exception as e:
+            print(f"Error occurred: {e}")
+            raise
 
 
 @router_assistant.post("/")
