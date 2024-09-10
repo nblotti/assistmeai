@@ -1,22 +1,14 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
-from langchain.agents import create_openai_tools_agent, AgentExecutor
-from langchain_core.messages import HumanMessage
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnableWithMessageHistory
 from starlette.responses import JSONResponse
 
-from DependencyManager import conversation_dao_provider, assistants_dao_provider, message_dao_provider
-from assistants import AssistantsRepository
+from DependencyManager import assistant_manager_provider, conversation_dao_provider
 from assistants.Assistant import Assistant
 from assistants.AssistantCommand import AssistantCommand
-from chat.azure_openai import chat_gpt_35, chat_gpt_4o, chat_gpt_4
-from chat.tools import summarize, web_search, get_date
-from conversation import ConversationRepository
+from assistants.AssistantsManager import AssistantManager
 from conversation.Conversation import Conversation
-from memories.SqlMessageHistory import build_agent_memory
-from message import MessageRepository
+from conversation.ConversationRepository import ConversationRepository
 
 router_assistant = APIRouter(
     prefix="/assistants",
@@ -24,164 +16,34 @@ router_assistant = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
+assistant_manager_dep = Annotated[AssistantManager, Depends(assistant_manager_provider.get_dependency)]
 conversation_repository_dep = Annotated[ConversationRepository, Depends(conversation_dao_provider.get_dependency)]
-assistants_repository_dep = Annotated[AssistantsRepository, Depends(assistants_dao_provider.get_dependency)]
-message_repository_dep = Annotated[MessageRepository, Depends(message_dao_provider.get_dependency)]
 
 
 @router_assistant.post("/command/")
-def command(assistant_command: AssistantCommand, message_repository: message_repository_dep,
-            conversation_repository: conversation_repository_dep,
-            assistants_repository: assistants_repository_dep
-            ) -> JSONResponse:
-    # Get the current conversation and build document memory
-    assistant: Assistant = assistants_repository.get_assistant_by_conversation_id(assistant_command.conversation_id)
-
-    if assistant.gpt_model_number == "4":
-        local_chat = chat_gpt_4
-    elif assistant.gpt_model_number == "4o":
-        local_chat = chat_gpt_4o
-    else:
-        local_chat = chat_gpt_35
-
-    memory = build_agent_memory(message_repository, assistant.conversation_id)
-
-    prompt = ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                "{}.\n Make sure you use the tool when you can !\n The Assistant id is {}."
-                "If you don't know, do not invent, just say it.".format(assistant.description, assistant.id)
-
-            ),
-            ("placeholder", "{messages}"),
-            ("placeholder", "{agent_scratchpad}"),
-        ]
-    )
-
-    if assistant.use_documents:
-
-        tools = [get_date, web_search, summarize]
-
-        agent = create_openai_tools_agent(llm=local_chat, tools=tools, prompt=prompt)
-        agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
-
-        conversational_agent_executor = RunnableWithMessageHistory(
-            agent_executor,
-            lambda session_id: memory,
-            input_messages_key="messages",
-            output_messages_key="output",
-        )
-
-        try:
-            result = conversational_agent_executor.invoke(
-                {"messages": [HumanMessage(assistant_command.command)]},
-                {"configurable": {"session_id": "unused"}},
-            )
-            return JSONResponse(content={"result": result["output"]})
-        except Exception as e:
-            print(f"Error occurred: {e}")
-            raise
-
-    else:
-        tools = [get_date, web_search]
-        agent = create_openai_tools_agent(llm=local_chat, tools=tools, prompt=prompt)
-        agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
-
-        conversational_agent_executor = RunnableWithMessageHistory(
-            agent_executor,
-            lambda session_id: memory,
-            input_messages_key="messages",
-            output_messages_key="output",
-        )
-
-        try:
-            result = conversational_agent_executor.invoke(
-                {"messages": [HumanMessage(f"'''{assistant_command.command}'''")]},
-                {"configurable": {"session_id": "unused"}},
-            )
-            return JSONResponse(content={"result": result["output"]})
-        except Exception as e:
-            print(f"Error occurred: {e}")
-            raise
+def execute_get_command(assistant_command: AssistantCommand, assistant_manager: assistant_manager_dep
+                        ) -> JSONResponse:
+    try:
+        result = assistant_manager.execute_command(assistant_command.conversation_id, assistant_command.command)
+        return JSONResponse(content={"result": result})
+    except Exception as e:
+        print(f"Error occurred: {e}")
+        raise
 
 
 @router_assistant.get("/command/")
-async def message(message_repository: message_repository_dep, conversation_repository: conversation_repository_dep,
-                  assistants_repository: assistants_repository_dep,
-                  command: str, conversation_id: str, perimeter: str = None):
-    # Get the current conversation and build document memory
-    assistant: Assistant = assistants_repository.get_assistant_by_conversation_id(conversation_id)
-
-    if assistant.gpt_model_number == "4o":
-        local_chat = chat_gpt_4o
-    else:
-        local_chat = chat_gpt_35
-
-    memory = build_agent_memory(message_repository, assistant.conversation_id)
-
-    prompt = ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                "{}.\nYou have access to tools. Use them if if need to.Somme tools will require an assistant id which is {}."
-                "If you don't know, do not invent, just say it.".format(assistant.description, assistant.id)
-
-            ),
-            ("placeholder", "{messages}"),
-            ("placeholder", "{agent_scratchpad}"),
-        ]
-    )
-
-    if assistant.use_documents:
-
-        tools = [get_date, web_search, summarize]
-
-        agent = create_openai_tools_agent(llm=local_chat, tools=tools, prompt=prompt)
-        agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
-
-        conversational_agent_executor = RunnableWithMessageHistory(
-            agent_executor,
-            lambda session_id: memory,
-            input_messages_key="messages",
-            output_messages_key="output",
-        )
-
-        try:
-            result = conversational_agent_executor.invoke(
-                {"messages": [HumanMessage(command)]},
-                {"configurable": {"session_id": "unused"}},
-            )
-            return JSONResponse(content={"result": result["output"]})
-        except Exception as e:
-            print(f"Error occurred: {e}")
-            raise
-
-    else:
-        tools = [get_date, web_search]
-        agent = create_openai_tools_agent(llm=local_chat, tools=tools, prompt=prompt)
-        agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
-
-        conversational_agent_executor = RunnableWithMessageHistory(
-            agent_executor,
-            lambda session_id: memory,
-            input_messages_key="messages",
-            output_messages_key="output",
-        )
-
-        try:
-            result = conversational_agent_executor.invoke(
-                {"messages": [HumanMessage(f"'''{command}'''")]},
-                {"configurable": {"session_id": "unused"}},
-            )
-            return JSONResponse(content={"result": result["output"]})
-        except Exception as e:
-            print(f"Error occurred: {e}")
-            raise
+async def execute_post_command(assistant_manager: assistant_manager_dep, command: str, conversation_id: str,
+                               perimeter: str = None):
+    try:
+        result = assistant_manager.execute_command(conversation_id, command)
+        return JSONResponse(content={"result": result})
+    except Exception as e:
+        print(f"Error occurred: {e}")
+        raise
 
 
 @router_assistant.post("/")
-async def create(assistant: Assistant, assistants_repository: assistants_repository_dep,
+async def create(assistant: Assistant, assistant_manager: assistant_manager_dep,
                  conversation_repository: conversation_repository_dep):
     conversation: Conversation = Conversation(
         perimeter=assistant.userid,
@@ -192,25 +54,25 @@ async def create(assistant: Assistant, assistants_repository: assistants_reposit
     new_conversation = conversation_repository.save(conversation)
     assistant.conversation_id = new_conversation.id
     # 1 on crée l'assistant
-    new_assistant = assistants_repository.save(assistant)
+    new_assistant = assistant_manager.save(assistant)
 
     return new_assistant
 
 
 @router_assistant.put("/")
-async def update(assistant: Assistant, assistants_repository: assistants_repository_dep):
+async def update(assistant: Assistant, assistant_manager: assistant_manager_dep):
     # 1 on crée l'assistant
-    new_assistant = assistants_repository.update(assistant)
+    new_assistant = assistant_manager.update(assistant)
 
     return new_assistant
 
 
 @router_assistant.get("/{user_id}/")
-async def list(assistants_repository: assistants_repository_dep, user_id: str):
-    return assistants_repository.get_all_assistant_by_user_id(user_id)
+async def list(assistant_manager: assistant_manager_dep, user_id: str):
+    return assistant_manager.get_all_assistant_by_user_id(user_id)
 
 
 @router_assistant.delete("/{assistant_id}/")
-async def delete(assistants_repository: assistants_repository_dep, assistant_id: str):
+async def delete(assistant_manager: assistant_manager_dep, assistant_id: str):
     # 1 on supprime l'assistant
-    assistants_repository.delete_by_assistant_id(assistant_id)
+    assistant_manager.delete_by_assistant_id(assistant_id)
