@@ -1,8 +1,8 @@
 CREATE TABLE shared_groups
 (
     id            INT DEFAULT nextval('owner_sequence') PRIMARY KEY,
-    name          VARCHAR NOT NULL,
-    owner         VARCHAR NOT NULL,
+    name          VARCHAR(255) NOT NULL,
+    owner         VARCHAR(255) NOT NULL,
     creation_date DATE    NOT NULL
 );
 
@@ -12,7 +12,7 @@ CREATE TABLE shared_group_users
 (
     id            SERIAL PRIMARY KEY,
     group_id      integer NOT NULL,
-    user_id       VARCHAR NOT NULL,
+    user_id       VARCHAR(255) NOT NULL,
     creation_date DATE    NOT NULL,
     FOREIGN KEY (group_id) REFERENCES shared_groups (id) ON DELETE CASCADE,
     CONSTRAINT unique_group_user UNIQUE (group_id, user_id)

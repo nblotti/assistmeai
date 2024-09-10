@@ -7,25 +7,17 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 ENV ENVIRONNEMENT PROD
-ENV OPENAI_API_KEY #REPLACE WITH YOUR OPEN AI KEY
-#ENV DB_USER postgres
-ENV DB_PASSWORD postgres
+
 
 # install dependencies
 COPY requirements.txt /app/requirements.txt
 
-RUN pip install --upgrade pip
-RUN pip install "psycopg[binary,pool]"
-RUN apk update && \
- apk add --no-cache python3 postgresql-libs postgresql-client && \
- apk add --no-cache --virtual .build-deps gcc python3-dev musl-dev postgresql-dev && \
- python3 -m pip install -r requirements.txt --no-cache-dir && \
- apk --purge del .build-deps
-
-RUN apk add openjdk17-jre-headless
-RUN apk  add --no-cache libreoffice
-RUN apk add --no-cache msttcorefonts-installer fontconfig
-RUN update-ms-fonts
+RUN pip install --upgrade pip && pip install "psycopg[binary,pool]" && apk update &&  \
+    apk add --no-cache python3 postgresql-libs postgresql-client && \
+    apk add --no-cache --virtual .build-deps gcc python3-dev musl-dev postgresql-dev && \
+    python3 -m pip install -r requirements.txt --no-cache-dir && apk --purge del .build-deps && \
+    apk add openjdk17-jre-headless && apk  add --no-cache libreoffice && \
+    apk add --no-cache msttcorefonts-installer fontconfig && update-ms-fonts
 
 
 

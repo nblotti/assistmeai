@@ -20,10 +20,8 @@ COPY httpd.conf /usr/local/apache2/conf/httpd.conf
 RUN apt-get update && \
     apt-get install -y openssh-server && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# Configure OpenSSH
-RUN mkdir /var/run/sshd && \
+    rm -rf /var/lib/apt/lists/* && \
+    mkdir /var/run/sshd && \
     echo 'root:root' | chpasswd && \
     sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
     sed -i 's/Port 22/Port 2222/' /etc/ssh/sshd_config && \

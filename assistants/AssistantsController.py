@@ -10,7 +10,8 @@ from starlette.responses import JSONResponse
 from DependencyManager import conversation_dao_provider, assistants_dao_provider, message_dao_provider
 from assistants import AssistantsRepository
 from assistants.Assistant import Assistant
-from chat.azure_openai import chat_gpt_35, chat_gpt_4o
+from assistants.AssistantCommand import AssistantCommand
+from chat.azure_openai import chat_gpt_35, chat_gpt_4o, chat_gpt_4
 from chat.tools import summarize, web_search, get_date
 from conversation import ConversationRepository
 from conversation.Conversation import Conversation
@@ -26,6 +27,83 @@ router_assistant = APIRouter(
 conversation_repository_dep = Annotated[ConversationRepository, Depends(conversation_dao_provider.get_dependency)]
 assistants_repository_dep = Annotated[AssistantsRepository, Depends(assistants_dao_provider.get_dependency)]
 message_repository_dep = Annotated[MessageRepository, Depends(message_dao_provider.get_dependency)]
+
+
+@router_assistant.post("/command/")
+def command(assistant_command: AssistantCommand, message_repository: message_repository_dep,
+            conversation_repository: conversation_repository_dep,
+            assistants_repository: assistants_repository_dep
+            ) -> JSONResponse:
+    # Get the current conversation and build document memory
+    assistant: Assistant = assistants_repository.get_assistant_by_conversation_id(assistant_command.conversation_id)
+
+    if assistant.gpt_model_number == "4":
+        local_chat = chat_gpt_4
+    elif assistant.gpt_model_number == "4o":
+        local_chat = chat_gpt_4o
+    else:
+        local_chat = chat_gpt_35
+
+    memory = build_agent_memory(message_repository, assistant.conversation_id)
+
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                "{}.\n Make sure you use the tool when you can !\n The Assistant id is {}."
+                "If you don't know, do not invent, just say it.".format(assistant.description, assistant.id)
+
+            ),
+            ("placeholder", "{messages}"),
+            ("placeholder", "{agent_scratchpad}"),
+        ]
+    )
+
+    if assistant.use_documents:
+
+        tools = [get_date, web_search, summarize]
+
+        agent = create_openai_tools_agent(llm=local_chat, tools=tools, prompt=prompt)
+        agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+
+        conversational_agent_executor = RunnableWithMessageHistory(
+            agent_executor,
+            lambda session_id: memory,
+            input_messages_key="messages",
+            output_messages_key="output",
+        )
+
+        try:
+            result = conversational_agent_executor.invoke(
+                {"messages": [HumanMessage(assistant_command.command)]},
+                {"configurable": {"session_id": "unused"}},
+            )
+            return JSONResponse(content={"result": result["output"]})
+        except Exception as e:
+            print(f"Error occurred: {e}")
+            raise
+
+    else:
+        tools = [get_date, web_search]
+        agent = create_openai_tools_agent(llm=local_chat, tools=tools, prompt=prompt)
+        agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+
+        conversational_agent_executor = RunnableWithMessageHistory(
+            agent_executor,
+            lambda session_id: memory,
+            input_messages_key="messages",
+            output_messages_key="output",
+        )
+
+        try:
+            result = conversational_agent_executor.invoke(
+                {"messages": [HumanMessage(f"'''{assistant_command.command}'''")]},
+                {"configurable": {"session_id": "unused"}},
+            )
+            return JSONResponse(content={"result": result["output"]})
+        except Exception as e:
+            print(f"Error occurred: {e}")
+            raise
 
 
 @router_assistant.get("/command/")
