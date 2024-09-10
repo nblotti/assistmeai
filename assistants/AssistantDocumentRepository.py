@@ -1,39 +1,13 @@
-import os
-
-from psycopg2 import connect
-
+from BaseRepository import BaseRepository
 from assistants.AssistantsDocument import AssistantsDocument
 
 
-class AssistantDocumentRepository:
+class AssistantDocumentRepository(BaseRepository):
     INSERT_ASSISTANT_DOCUMENT__QUERY = """ INSERT INTO assistants_document (assistant_id, document_id, document_name)  VALUES ( %s, %s, %s) RETURNING id;"""
 
     LIST_ASSISTANT_DOCUMENT_QUERY = """SELECT id::text,assistant_id::text, document_id::text, document_name FROM assistants_document WHERE assistant_id=%s """
 
     DELETE_GROUP_QUERY = """DELETE FROM assistants_document WHERE id = %s"""
-
-    db_name: str
-    db_host: str
-    db_port: str
-    db_user: str
-    db_password: str
-
-    def __init__(self, ):
-        self.db_name = os.getenv("DB_NAME")
-        self.db_host = os.getenv("DB_HOST")
-        self.db_port = os.getenv("DB_PORT")
-        self.db_user = os.getenv("DB_USER")
-        self.db_password = os.getenv("DB_PASSWORD")
-
-    def build_connection(self):
-        conn = connect(
-            dbname=self.db_name,
-            user=self.db_user,
-            password=self.db_password,
-            host=self.db_host,
-            port=self.db_port
-        )
-        return conn
 
     def create(self, assistant_document):
         conn = self.build_connection()

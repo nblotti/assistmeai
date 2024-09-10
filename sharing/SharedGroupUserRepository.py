@@ -1,12 +1,9 @@
-import os
-
-from psycopg2 import connect
-
+from BaseRepository import BaseRepository
 from sharing.SharedGroupUser import SharedGroupUser
 from sharing.SharedGroupUserDTO import SharedGroupUserDTO
 
 
-class SharedGroupUserRepository:
+class SharedGroupUserRepository(BaseRepository):
     INSERT_GROUP_QUERY = """ INSERT INTO shared_group_users ( group_id, user_id, creation_date)  VALUES ( %s, %s, %s) RETURNING id;"""
 
     SELECT_GROUP_QUERY = """SELECT id::text,group_id::text, user_id, creation_date FROM shared_group_users WHERE id=%s """
@@ -19,29 +16,6 @@ class SharedGroupUserRepository:
     from shared_group_users su, shared_groups sg where su.group_id = sg.id and su.user_id =%s """
 
     DELETE_ALL_QUERY = """DELETE FROM shared_group_users"""
-
-    db_name: str
-    db_host: str
-    db_port: str
-    db_user: str
-    db_password: str
-
-    def __init__(self, ):
-        self.db_name = os.getenv("DB_NAME")
-        self.db_host = os.getenv("DB_HOST")
-        self.db_port = os.getenv("DB_PORT")
-        self.db_user = os.getenv("DB_USER")
-        self.db_password = os.getenv("DB_PASSWORD")
-
-    def build_connection(self):
-        conn = connect(
-            dbname=self.db_name,
-            user=self.db_user,
-            password=self.db_password,
-            host=self.db_host,
-            port=self.db_port
-        )
-        return conn
 
     def create(self, group):
         conn = self.build_connection()
@@ -85,7 +59,6 @@ class SharedGroupUserRepository:
             for row in result
         ]
         return groups
-
 
     def list_by_group_id(self, group_id):
         conn = self.build_connection()

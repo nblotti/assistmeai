@@ -1,21 +1,24 @@
-import os
+from psycopg2 import Binary, DatabaseError
 
-from psycopg2 import connect, Binary, DatabaseError
-
+from BaseRepository import BaseRepository
 from document.Document import Document, DocumentType, Jobstatus
 
 
-class DocumentsRepository:
-    INSERT_PDF_QUERY = """ INSERT INTO document ( name, owner,perimeter, document, document_type)  VALUES ( %s, %s, %s, %s, %s) RETURNING id,created_on;"""
+class DocumentsRepository(BaseRepository):
+    INSERT_PDF_QUERY = """ INSERT INTO document ( name, owner,perimeter, document, document_type)  
+    VALUES ( %s, %s, %s, %s, %s) RETURNING id,created_on;"""
 
     SELECT_DOCUMENT_STREAM_QUERY = """SELECT name, document ,perimeter, created_on FROM document WHERE id=%s """
 
-    SELECT_DOCUMENT_NO_CONTENT_QUERY = """SELECT id::text, name, owner , perimeter,created_on,document_type,summary_id, summary_status FROM document WHERE id=%s """
+    SELECT_DOCUMENT_NO_CONTENT_QUERY = """SELECT id::text, name, owner , perimeter,created_on,document_type,summary_id, 
+    summary_status FROM document WHERE id=%s """
 
-    LIST_DOCUMENT_NO_CONTENT_BY_USER_QUERY = """SELECT id::text, name, owner , perimeter,created_on,summary_id, summary_status FROM document 
+    LIST_DOCUMENT_NO_CONTENT_BY_USER_QUERY = """SELECT id::text, name, owner , perimeter,created_on,summary_id, 
+    summary_status FROM document 
     where owner=%s"""
 
-    LIST_DOCUMENT_NO_CONTENT_BY_USER_AND_TYPE_QUERY = """SELECT id::text, name, owner , perimeter,created_on,summary_id, summary_status FROM document 
+    LIST_DOCUMENT_NO_CONTENT_BY_USER_AND_TYPE_QUERY = """SELECT id::text, name, owner , perimeter,created_on,summary_id, 
+    summary_status FROM document 
         where owner=%s and document_type=%s"""
 
     DELETE_PDF_QUERY = """DELETE FROM document WHERE id = %s"""
@@ -24,20 +27,8 @@ class DocumentsRepository:
 
     DELETE_EMBEDDING_QUERY = """DELETE FROM langchain_pg_embedding WHERE cmetadata ->>'blob_id' =%s;"""
 
-    GET_EMBEDDING_QUERY = """SELECT cmetadata ->>'text' FROM langchain_pg_embedding WHERE cmetadata ->>'blob_id' in %s;"""
-
-    db_name: str
-    db_host: str
-    db_port: str
-    db_user: str
-    db_password: str
-
-    def __init__(self, ):
-        self.db_name = os.getenv("DB_NAME")
-        self.db_host = os.getenv("DB_HOST")
-        self.db_port = os.getenv("DB_PORT")
-        self.db_user = os.getenv("DB_USER")
-        self.db_password = os.getenv("DB_PASSWORD")
+    GET_EMBEDDING_QUERY = """SELECT cmetadata ->>'text' FROM langchain_pg_embedding 
+    WHERE cmetadata ->>'blob_id' in %s;"""
 
     # Function to store blob data in SQLite
     def save(self, filename, userid, blob_data, document_type) -> Document:
@@ -203,13 +194,3 @@ class DocumentsRepository:
         conn.commit()
         cursor.close()
         conn.close()
-
-    def build_connection(self):
-        conn = connect(
-            dbname=self.db_name,
-            user=self.db_user,
-            password=self.db_password,
-            host=self.db_host,
-            port=self.db_port
-        )
-        return conn

@@ -1,11 +1,8 @@
-import os
-
-from psycopg2 import connect
-
+from BaseRepository import BaseRepository
 from sharing.SharedGroup import SharedGroup
 
 
-class SharedGroupRepository:
+class SharedGroupRepository(BaseRepository):
     INSERT_GROUP_QUERY = """ INSERT INTO shared_groups ( name, owner, creation_date)  VALUES ( %s, %s, %s) RETURNING id;"""
 
     SELECT_GROUP_QUERY = """SELECT id::text,name, owner, creation_date FROM shared_groups WHERE id=%s """
@@ -18,31 +15,7 @@ class SharedGroupRepository:
 
     DELETE_ALL_QUERY = """DELETE FROM shared_groups"""
 
-    db_name: str
-    db_host: str
-    db_port: str
-    db_user: str
-    db_password: str
-
-    def __init__(self, ):
-        self.db_name = os.getenv("DB_NAME")
-        self.db_host = os.getenv("DB_HOST")
-        self.db_port = os.getenv("DB_PORT")
-        self.db_user = os.getenv("DB_USER")
-        self.db_password = os.getenv("DB_PASSWORD")
-
-    def build_connection(self):
-        conn = connect(
-            dbname=self.db_name,
-            user=self.db_user,
-            password=self.db_password,
-            host=self.db_host,
-            port=self.db_port
-        )
-        return conn
-
     def create(self, group):
-
         conn = self.build_connection()
         cursor = conn.cursor()
         cursor.execute(self.INSERT_GROUP_QUERY,
@@ -94,4 +67,3 @@ class SharedGroupRepository:
             for row in result
         ]
         return groups
-

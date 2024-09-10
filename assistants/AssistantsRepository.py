@@ -1,11 +1,8 @@
-import os
-
-from psycopg2 import connect
-
+from BaseRepository import BaseRepository
 from assistants.Assistant import Assistant
 
 
-class AssistantsRepository:
+class AssistantsRepository(BaseRepository):
     INSERT_ASSISTANT_QUERY = (
         "INSERT INTO assistants (user_id,name, conversation_id,description,gpt_model_number,use_documents) "
         "VALUES (%s, %s, %s,%s ,%s, %s) RETURNING id")
@@ -18,20 +15,7 @@ class AssistantsRepository:
     DELETE_ASSISTANT_BY_ASSISTANT_ID_QUERY = "DELETE FROM assistants where id=%s"
     DELETE_ALL_QUERY = "DELETE FROM assistants"
 
-    db_name: str
-    db_host: str
-    db_port: str
-    db_user: str
-    db_password: str
-
-    def __init__(self):
-        self.db_name = os.getenv("DB_NAME")
-        self.db_host = os.getenv("DB_HOST")
-        self.db_port = os.getenv("DB_PORT")
-        self.db_user = os.getenv("DB_USER")
-        self.db_password = os.getenv("DB_PASSWORD")
-
-        # Function to store a message data in SQLite
+    # Function to store a message data in SQLite
 
     def save(self, assistant):
         conn = self.build_connection()
@@ -72,7 +56,7 @@ class AssistantsRepository:
             description=result[4],
             gpt_model_number=result[5],
             use_documents=result[6]
-            )
+        )
 
     def get_all_assistant_by_user_id(self, user_id) -> list[Assistant]:
         conn = self.build_connection()
@@ -99,13 +83,3 @@ class AssistantsRepository:
         cursor.execute(self.DELETE_ASSISTANT_BY_ASSISTANT_ID_QUERY, (assistant_id,))
         conn.commit()
         conn.close()
-
-    def build_connection(self):
-        conn = connect(
-            dbname=self.db_name,
-            user=self.db_user,
-            password=self.db_password,
-            host=self.db_host,
-            port=self.db_port
-        )
-        return conn

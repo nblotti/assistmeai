@@ -1,11 +1,8 @@
-import os
-
-from psycopg2 import connect
-
+from BaseRepository import BaseRepository
 from conversation.Conversation import Conversation
 
 
-class ConversationRepository:
+class ConversationRepository(BaseRepository):
     INSERT_DOCUMENT_CONVERSATION_QUERY = """INSERT INTO conversation (document_id, perimeter) VALUES (%s, 
     %s) RETURNING id, created_on;"""
     INSERT_STANDALONE_CONVERSATION_QUERY = """INSERT INTO conversation (perimeter) VALUES (%s) RETURNING id, 
@@ -32,20 +29,7 @@ class ConversationRepository:
     DELETE_CONVERSATION_BY_DOCUMENT_ID_QUERY = "DELETE FROM conversation where document_id=%s"
     DELETE_ALL_QUERY = "DELETE FROM conversation"
 
-    db_name: str
-    db_host: str
-    db_port: str
-    db_user: str
-    db_password: str
-
-    def __init__(self):
-        self.db_name = os.getenv("DB_NAME")
-        self.db_host = os.getenv("DB_HOST")
-        self.db_port = os.getenv("DB_PORT")
-        self.db_user = os.getenv("DB_USER")
-        self.db_password = os.getenv("DB_PASSWORD")
-
-        # Function to store a message data in SQLite
+    # Function to store a message data in SQLite
 
     def save(self, conversation: Conversation):
         conn = self.build_connection()
@@ -134,13 +118,3 @@ class ConversationRepository:
 
         conn.close()
         return count
-
-    def build_connection(self):
-        conn = connect(
-            dbname=self.db_name,
-            user=self.db_user,
-            password=self.db_password,
-            host=self.db_host,
-            port=self.db_port
-        )
-        return conn
