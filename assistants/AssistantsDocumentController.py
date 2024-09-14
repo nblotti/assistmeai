@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 from starlette import status
 from starlette.responses import JSONResponse
 
-from DependencyManager import assistant_document_dao_provider
+from ProviderManager import assistant_document_dao_provider
 from assistants.AssistantDocumentRepository import AssistantDocumentRepository
 from assistants.AssistantsDocument import AssistantsDocument
 

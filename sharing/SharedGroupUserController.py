@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 from starlette import status
 from starlette.responses import JSONResponse
 
-from DependencyManager import shared_group_user_dao_provider
+from ProviderManager import shared_group_user_dao_provider
 from sharing.SharedGroupUser import SharedGroupUser
 from sharing.SharedGroupUserDTO import SharedGroupUserDTO
 from sharing.SharedGroupUserRepository import SharedGroupUserRepository

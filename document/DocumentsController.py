@@ -4,7 +4,7 @@ from typing import Annotated, Optional
 from fastapi import UploadFile, File, APIRouter, Form, Depends, Query
 from starlette.responses import StreamingResponse, Response
 
-from DependencyManager import document_manager_provider
+from ProviderManager import document_manager_provider
 from document.Document import DocumentType
 from document.DocumentManager import DocumentManager
 

@@ -3,7 +3,7 @@ from typing import Annotated, List
 
 from fastapi import APIRouter, Depends
 
-from DependencyManager import share_group_document_dao_provider, document_manager_provider
+from ProviderManager import share_group_document_dao_provider, document_manager_provider
 from document.DocumentManager import DocumentManager
 from sharing.SharedGroupDocument import SharedGroupDocument
 from sharing.SharedGroupDocumentRepository import SharedGroupDocumentRepository

@@ -4,8 +4,8 @@ from fastapi import APIRouter, Query, Depends, HTTPException
 from langchain.chains.retrieval_qa.base import RetrievalQA
 from starlette.responses import JSONResponse
 
-from DependencyManager import message_dao_provider, conversation_dao_provider, document_manager_provider
-from chat.azure_openai import chat_gpt_4o, chat_gpt_35
+from ProviderManager import message_dao_provider, conversation_dao_provider, document_manager_provider
+from chat.azure_openai import chat_gpt_35
 from conversation.Conversation import Conversation
 from conversation.ConversationRepository import ConversationRepository
 from document.DocumentManager import DocumentManager

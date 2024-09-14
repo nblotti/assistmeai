@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from starlette import status
 from starlette.responses import JSONResponse
 
-from DependencyManager import shared_group_dao_provider
+from ProviderManager import shared_group_dao_provider
 from sharing.SharedGroup import SharedGroup
 from sharing.SharedGroupRepository import SharedGroupRepository
 

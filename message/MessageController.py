@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from fastapi import Response
 
-from DependencyManager import message_dao_provider
+from ProviderManager import message_dao_provider
 from message import MessageRepository
 
 router_message = APIRouter(

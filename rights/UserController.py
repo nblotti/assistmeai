@@ -7,7 +7,8 @@ from ldap3 import Server, Connection, ALL, SUBTREE
 from starlette.responses import Response
 
 from CustomEncoder import CustomEncoder
-from DependencyManager import user_dao_provider, category_dao_provider
+from ProviderManager import user_dao_provider, category_dao_provider
+
 from config import jwt_secret_key, jwt_algorithm, ldap_url, ldap_password, ldap_base_dn
 from rights.CategoryRepository import CategoryRepository
 from rights.UserRepository import UserRepository

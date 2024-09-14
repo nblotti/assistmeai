@@ -3,6 +3,33 @@ from assistants.Assistant import Assistant
 
 
 class AssistantsRepository(BaseRepository):
+    """
+    AssistantsRepository class for managing assistant-related database operations
+
+    Attributes:
+        INSERT_ASSISTANT_QUERY (str): SQL query template for inserting a new assistant.
+        UPDATE_ASSISTANT_QUERY (str): SQL query template for updating an existing assistant.
+        GET_ASSISTANT_BY_USER_QUERY (str): SQL query template for retrieving assistants by user ID.
+        GET_ASSISTANT_BY_CONVERSATION_ID_QUERY (str): SQL query template for retrieving an assistant by conversation ID.
+        DELETE_ASSISTANT_BY_ASSISTANT_ID_QUERY (str): SQL query template for deleting an assistant by ID.
+        DELETE_ALL_QUERY (str): SQL query template for deleting all assistants.
+
+    Methods:
+        save(assistant):
+            Inserts a new assistant into the database and returns the generated assistant ID.
+
+        update(assistant):
+            Updates an existing assistant's information in the database.
+
+        get_assistant_by_conversation_id(conversation_id):
+            Retrieves an assistant from the database by conversation ID.
+
+        get_all_assistant_by_user_id(user_id):
+            Retrieves all assistants associated with a specific user from the database.
+
+        delete_by_assistant_id(assistant_id):
+            Deletes an assistant from the database by assistant ID.
+    """
     INSERT_ASSISTANT_QUERY = (
         "INSERT INTO assistants (user_id,name, conversation_id,description,gpt_model_number,use_documents) "
         "VALUES (%s, %s, %s,%s ,%s, %s) RETURNING id")
@@ -18,6 +45,10 @@ class AssistantsRepository(BaseRepository):
     # Function to store a message data in SQLite
 
     def save(self, assistant):
+        """
+        :param assistant: An instance of the Assistant class containing assistant details such as userid, name, conversation_id, description, gpt_model_number, and use_documents.
+        :return: The updated Assistant instance with the generated id populated.
+        """
         conn = self.build_connection()
         cursor = conn.cursor()
         cursor.execute(self.INSERT_ASSISTANT_QUERY,
@@ -42,6 +73,10 @@ class AssistantsRepository(BaseRepository):
         return assistant
 
     def get_assistant_by_conversation_id(self, conversation_id) -> Assistant:
+        """
+        :param conversation_id: Unique identifier of the conversation to fetch the assistant for.
+        :return: An Assistant object containing details associated with the given conversation_id.
+        """
         conn = self.build_connection()
         cursor = conn.cursor()
         cursor.execute(self.GET_ASSISTANT_BY_CONVERSATION_ID_QUERY, (conversation_id,))
@@ -59,6 +94,10 @@ class AssistantsRepository(BaseRepository):
         )
 
     def get_all_assistant_by_user_id(self, user_id) -> list[Assistant]:
+        """
+        :param user_id: The ID of the user for whom the assistants are being retrieved.
+        :return: A list of Assistant objects associated with the given user ID.
+        """
         conn = self.build_connection()
         cursor = conn.cursor()
         cursor.execute(self.GET_ASSISTANT_BY_USER_QUERY, (user_id,))
@@ -78,6 +117,10 @@ class AssistantsRepository(BaseRepository):
         return returned if returned else []
 
     def delete_by_assistant_id(self, assistant_id):
+        """
+        :param assistant_id: The unique identifier of the assistant to be deleted.
+        :return: None.
+        """
         conn = self.build_connection()
         cursor = conn.cursor()
         cursor.execute(self.DELETE_ASSISTANT_BY_ASSISTANT_ID_QUERY, (assistant_id,))

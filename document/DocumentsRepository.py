@@ -5,6 +5,46 @@ from document.Document import Document, DocumentType, Jobstatus
 
 
 class DocumentsRepository(BaseRepository):
+    """
+    Represents a repository for storing and retrieving documents, including operations
+    for saving, deleting, and listing documents, as well as managing related embeddings.
+
+    Attributes:
+        INSERT_PDF_QUERY: SQL query template to insert a new document record into the database.
+        SELECT_DOCUMENT_STREAM_QUERY: SQL query template to select a document's content by its ID.
+        SELECT_DOCUMENT_NO_CONTENT_QUERY: SQL query template to select metadata of a document by its ID without its content.
+        LIST_DOCUMENT_NO_CONTENT_BY_USER_QUERY: SQL query template to list metadata of documents by the user without their content.
+        LIST_DOCUMENT_NO_CONTENT_BY_USER_AND_TYPE_QUERY: SQL query template to list metadata of documents by the user and type without their content.
+        DELETE_PDF_QUERY: SQL query template to delete a document by its ID.
+        DELETE_ALL_QUERY: SQL query template to delete all documents.
+        DELETE_EMBEDDING_QUERY: SQL query template to delete embeddings by blob ID.
+        GET_EMBEDDING_QUERY: SQL query template to get embeddings by a list of blob IDs.
+
+    Methods:
+        save(filename, userid, blob_data, document_type):
+            Save a new document to the repository.
+
+        get_by_id_no_content(blob_id):
+            Retrieve a document's metadata by its ID without including its content.
+
+        get_stream_by_id(blob_id):
+            Retrieve a document's content by its ID.
+
+        list_no_content(user, document_type):
+            List all documents' metadata for a given user, optionally filter by document type.
+
+        delete_by_id(blob_id):
+            Delete a document by its ID.
+
+        delete_embeddings_by_id(blob_id):
+            Delete embeddings associated with a given blob ID.
+
+        get_embeddings_by_ids(blob_ids):
+            Retrieve embeddings for a list of blob IDs.
+
+        delete_all():
+            Delete all documents and relevant data from the repository.
+    """
     INSERT_PDF_QUERY = """ INSERT INTO document ( name, owner,perimeter, document, document_type)  
     VALUES ( %s, %s, %s, %s, %s) RETURNING id,created_on;"""
 
@@ -32,6 +72,13 @@ class DocumentsRepository(BaseRepository):
 
     # Function to store blob data in SQLite
     def save(self, filename, userid, blob_data, document_type) -> Document:
+        """
+        :param filename: The name of the file to be saved.
+        :param userid: The ID of the user who is saving the file.
+        :param blob_data: The binary content of the file.
+        :param document_type: The type/category of the document.
+        :return: A Document object containing the information of the saved document or None if an error occurs.
+        """
         conn = None
         cursor = None
         try:

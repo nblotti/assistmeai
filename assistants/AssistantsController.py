@@ -3,10 +3,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from starlette.responses import JSONResponse
 
-from DependencyManager import assistant_manager_provider, conversation_dao_provider
+from DependencyManager import ToolManager, tool_manager_provider
+from ProviderManager import assistant_manager_provider, conversation_dao_provider
 from assistants.Assistant import Assistant
 from assistants.AssistantCommand import AssistantCommand
 from assistants.AssistantsManager import AssistantManager
+from assistants.VBAAssistantCommand import VBAAssistantCommand
+from assistants.VBAPPTPresentationAssistantCommand import VBAPPTPresentationAssistantCommand
 from conversation.Conversation import Conversation
 from conversation.ConversationRepository import ConversationRepository
 
@@ -18,22 +21,48 @@ router_assistant = APIRouter(
 
 assistant_manager_dep = Annotated[AssistantManager, Depends(assistant_manager_provider.get_dependency)]
 conversation_repository_dep = Annotated[ConversationRepository, Depends(conversation_dao_provider.get_dependency)]
+tool_manager_provider = Annotated[ToolManager, Depends(tool_manager_provider.get_dependency)]
 
 
 @router_assistant.post("/command/")
-def execute_get_command(assistant_command: AssistantCommand, assistant_manager: assistant_manager_dep
-                        ) -> JSONResponse:
+def execute_post_command(assistant_command: AssistantCommand, assistant_manager: assistant_manager_dep) -> JSONResponse:
     try:
-        result = assistant_manager.execute_command(assistant_command.conversation_id, assistant_command.command)
+        result = assistant_manager.execute_command(assistant_command.conversation_id,
+                                                   assistant_command.command)
         return JSONResponse(content={"result": result})
     except Exception as e:
         print(f"Error occurred: {e}")
         raise
 
 
+@router_assistant.post("/command/vba/")
+def execute_get_command(assistant_command: VBAAssistantCommand,
+                        assistant_manager: assistant_manager_dep) -> JSONResponse:
+    try:
+        result = assistant_manager.execute_command_vba(assistant_command.conversation_id,
+                                                       assistant_command.command,
+                                                       assistant_command.use_documentation, assistant_command.memory)
+        return result
+    except Exception as e:
+        print(f"Error occurred: {e}")
+        raise
+
+
+@router_assistant.post("/command/vba/powerpoint/")
+def execute_get_command(assistant_command: VBAPPTPresentationAssistantCommand,
+                        assistant_manager: assistant_manager_dep) -> JSONResponse:
+    try:
+        result = assistant_manager.execute_powerpoint_command_vba(assistant_command.conversation_id,assistant_command.command,
+                                                                  assistant_command.use_documentation)
+        return result
+    except Exception as e:
+        print(f"Error occurred: {e}")
+        raise
+
+
 @router_assistant.get("/command/")
-async def execute_post_command(assistant_manager: assistant_manager_dep, command: str, conversation_id: str,
-                               perimeter: str = None):
+async def execute_get_command(assistant_manager: assistant_manager_dep, command: str, conversation_id: str,
+                              perimeter: str = None):
     try:
         result = assistant_manager.execute_command(conversation_id, command)
         return JSONResponse(content={"result": result})
