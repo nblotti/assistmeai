@@ -6,7 +6,7 @@ from langchain_core.runnables import RunnableWithMessageHistory
 from ToolManager import ToolManager, ToolName
 from assistants import AssistantsRepository
 from assistants.Assistant import Assistant
-from chat.azure_openai import chat_gpt_35, chat_gpt_4o, chat_gpt_4
+from chat.azure_openai import chat_gpt_4o, chat_gpt_4, chat_gpt_4o_mini, chat_gpt_35
 from memories.SqlMessageHistory import build_agent_memory
 from message import MessageRepository
 
@@ -71,7 +71,7 @@ class AssistantManager:
                 ]
             )
             power_point_tool = self.tool_manager.get_tools(
-                [ToolName.POWERPOINT, ToolName.WEB_SEARCH, ToolName.GET_DATE])
+                [ToolName.POWERPOINT, ToolName.WEB_SEARCH])
             agent = create_openai_tools_agent(llm=local_chat, tools=power_point_tool, prompt=prompt)
             agent_executor = AgentExecutor(agent=agent, tools=power_point_tool, verbose=True)
 
@@ -92,12 +92,12 @@ class AssistantManager:
             local_chat = chat_gpt_4
         elif gpt_model_number == "4o":
             local_chat = chat_gpt_4o
+        elif gpt_model_number == "4o-mini":
+            local_chat = chat_gpt_4o_mini
         else:
             local_chat = chat_gpt_35
 
         memory = build_agent_memory(self.message_repository, conversation_id)
-
-
 
         if use_document:
 
@@ -114,7 +114,7 @@ class AssistantManager:
                     ("placeholder", "{agent_scratchpad}"),
                 ]
             )
-            full_tools = self.tool_manager.get_tools([ToolName.SUMMARIZE, ToolName.GET_DATE, ToolName.WEB_SEARCH])
+            full_tools = self.tool_manager.get_tools([ToolName.SUMMARIZE, ToolName.WEB_SEARCH])
             agent = create_openai_tools_agent(llm=local_chat, tools=full_tools, prompt=prompt)
             agent_executor = AgentExecutor(agent=agent, tools=full_tools, verbose=True)
 
