@@ -1,6 +1,7 @@
 import base64
 import io
 import json
+import os
 import random
 from typing import Annotated, Optional, List
 
@@ -106,7 +107,7 @@ async def generate_qrcode(request: Request):
     totp = pyotp.TOTP(otp_secret)
 
     # Create provisioning URL for Google Authenticator
-    provisioning_url = totp.provisioning_uri(name=user, issuer_name="gpt.azqore.com")
+    provisioning_url = totp.provisioning_uri(name=user, issuer_name=os.getenv("PROVISIONNING_URL"))
 
     # Generate QR code
     qr = qrcode.make(provisioning_url)

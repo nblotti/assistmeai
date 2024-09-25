@@ -1,4 +1,5 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 from datetime import date
 from typing import Optional
@@ -26,7 +27,7 @@ config.set_verbose(False)
 # CORS origins allowed
 origins = [
     "http://localhost:4200",  # Your frontend application
-    "https://gpt.azqore.com"  # API endpoint
+    os.getenv("BASE_URL"),
     # Add other origins as needed
 ]
 # Middleware to disable caching
