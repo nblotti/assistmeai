@@ -94,22 +94,24 @@ def powerpoint(a) -> []:
     return a
 
 
-def fetch_and_prepare_sessions() -> Generator[AssistantDocumentRepository]:
-    async def fetch_sessions():
-        sessions = []
-        for session in config.get_db():
-            sessions.append(session)
-        return sessions
-
-    sessions = asyncio.run(fetch_sessions())
-    return (AssistantDocumentRepository(session) for session in sessions)
+async def fetch_sessions():
+    async for session in config.get_db():
+        yield session
 
 
+async def async_fetch_and_prepare_sessions():
+    sessions = []
+    async for session in fetch_sessions():
+        sessions.append(session)
+    return sessions
+
+def fetch_and_prepare_sessions_sync():
+    return asyncio.run(async_fetch_and_prepare_sessions())
 @tool
 def summarize(assistant_id: str, query: str) -> str:
     """This tool is used to search into documents in the user's library."""
 
-    session_generator = fetch_and_prepare_sessions()
+    session_generator = fetch_and_prepare_sessions_sync()
 
     assistant_document_manager = None
     # Yield the repositories from the generator
