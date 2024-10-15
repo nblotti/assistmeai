@@ -1,10 +1,11 @@
 # ToolManager.py
+import asyncio
 import logging
 import os
 import time
 from datetime import datetime
 from enum import Enum
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Generator
 
 import tiktoken
 from langchain_community.tools import DuckDuckGoSearchRun
@@ -93,16 +94,33 @@ def powerpoint(a) -> []:
     return a
 
 
+def fetch_and_prepare_sessions() -> Generator[AssistantDocumentRepository]:
+    async def fetch_sessions():
+        sessions = []
+        for session in config.get_db():
+            sessions.append(session)
+        return sessions
+
+    sessions = asyncio.run(fetch_sessions())
+    return (AssistantDocumentRepository(session) for session in sessions)
+
+
 @tool
-async def summarize(assistant_id: str, query: str) -> str:
+def summarize(assistant_id: str, query: str) -> str:
     """This tool is used to search into documents in the user's library."""
 
-    # Manually create a dependency injection context
-    async def override_assistant_repository():
-        async for session in config.get_db():
-            yield AssistantDocumentRepository(session)
+    session_generator = fetch_and_prepare_sessions()
 
-    assistant_document_manager = await override_assistant_repository().__anext__()
+    assistant_document_manager = None
+    # Yield the repositories from the generator
+    for repositories in session_generator:
+        if repositories:
+            assistant_document_manager = repositories[0]
+            break
+
+    if not assistant_document_manager:
+        logging.error("No repositories found.")
+        return "Error: No repositories found."
 
     document_manager = DocumentManager(DocumentsRepository(), EmbeddingRepository())
     logging.debug("Assistant id: %s", assistant_id)

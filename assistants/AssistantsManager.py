@@ -79,6 +79,7 @@ class AssistantManager:
             {"messages": [HumanMessage(f"'''{command}'''")]}
         )
 
+
         return result["output"]
 
     def execute_command_documents(self, conversation_id: str, command: str, id: str,
