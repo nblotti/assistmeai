@@ -5,7 +5,7 @@ import os
 import time
 from datetime import datetime
 from enum import Enum
-from typing import Callable, Dict, List, Generator
+from typing import Callable, Dict, List
 
 import tiktoken
 from langchain_community.tools import DuckDuckGoSearchRun
@@ -105,25 +105,26 @@ async def async_fetch_and_prepare_sessions():
         sessions.append(session)
     return sessions
 
+
 def fetch_and_prepare_sessions_sync():
     return asyncio.run(async_fetch_and_prepare_sessions())
+
+
 @tool
 def summarize(assistant_id: str, query: str) -> str:
     """This tool is used to search into documents in the user's library."""
 
-    session_generator = fetch_and_prepare_sessions_sync()
+    try:
+        sessions = fetch_and_prepare_sessions_sync()
+    except Exception as e:
+        logging.error(f"Failed to fetch sessions: {e}")
+        return "Error fetching sessions."
 
-    assistant_document_manager = None
-    # Yield the repositories from the generator
-    for repositories in session_generator:
-        if repositories:
-            assistant_document_manager = repositories[0]
-            break
-
-    if not assistant_document_manager:
+    if not sessions:
         logging.error("No repositories found.")
         return "Error: No repositories found."
 
+    assistant_document_manager = AssistantDocumentRepository(sessions[0])
     document_manager = DocumentManager(DocumentsRepository(), EmbeddingRepository())
     logging.debug("Assistant id: %s", assistant_id)
     assistants_document = assistant_document_manager.list_by_assistant_id(assistant_id)
