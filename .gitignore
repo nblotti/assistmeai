@@ -235,7 +235,7 @@ fabric.properties
 
 .idea/
 
-config.py
+__ldap_scripts/key_users.ldif
 # Editor-based Rest Client
 .idea/httpRequests
 
