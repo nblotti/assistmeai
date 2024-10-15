@@ -20,9 +20,17 @@ spec:
         resources:
           limits:
             memory: 500Mi
+        volumeMounts:
+          - mountPath: /app/config
+            name: config-volume
         ports:
         - containerPort: 8080
           name: http
+      volumes:
+        - configMap:
+            defaultMode: 420
+            name: assistme-config
+          name: config-volume
       automountServiceAccountToken: false
       restartPolicy: Always
       imagePullSecrets:

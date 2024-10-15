@@ -11,7 +11,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 # Remaining imports...
 from starlette.middleware.cors import CORSMiddleware
 
-import config  # Ensure import of config module
+import config
+# Ensure import of config module
 from assistants.AssistantsController import router_assistant
 from assistants.AssistantsDocumentController import router_assistant_document
 from chat.ChatController import chat_ai
@@ -24,12 +25,15 @@ from sharing.SharedGroupDocumentController import router_shared_group_document
 from sharing.SharedGroupUserController import router_shared_group_user
 
 config.set_verbose(False)
+
 # CORS origins allowed
 origins = [
     "http://localhost:4200",  # Your frontend application
     os.getenv("BASE_URL"),
     # Add other origins as needed
 ]
+
+
 # Middleware to disable caching
 class NoCacheMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
@@ -43,7 +47,7 @@ class NoCacheMiddleware(BaseHTTPMiddleware):
 # Middleware for verifying Bearer tokens
 class BearerTokenMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
-        if request.url.path.endswith("/login") or request.url.path.endswith("/login/local")\
+        if request.url.path.endswith("/login") or request.url.path.endswith("/login/local") \
                 or request.url.path.endswith("/generate-qrcode/"):
             return await call_next(request)
 
@@ -61,7 +65,9 @@ class BearerTokenMiddleware(BaseHTTPMiddleware):
 
     def verify_token(self, token: str) -> bool:
         try:
-            decoded_payload = jwt.decode(jwt=token, key=config.jwt_secret_key, algorithms=[config.jwt_algorithm])
+            jwt_secret_key = os.getenv("jwt_secret_key")
+            jwt_algorithm = os.getenv("jwt_algorithm")
+            decoded_payload = jwt.decode(jwt=token, key=jwt_secret_key, algorithms=[jwt_algorithm])
             logging.info("JWT token is valid : decoded payload: %s", decoded_payload)
             return True
         except ExpiredSignatureError:

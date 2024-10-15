@@ -15,7 +15,6 @@ from starlette.responses import Response, StreamingResponse
 
 from CustomEncoder import CustomEncoder
 from ProviderManager import user_dao_provider, category_dao_provider
-from config import jwt_secret_key, jwt_algorithm, ldap_url, ldap_password, ldap_base_dn
 from rights.CategoryRepository import CategoryRepository
 from rights.UserRepository import UserRepository
 
@@ -179,6 +178,10 @@ async def save(user_repository: user_repository_dep, category_repository: catego
 
 def get_gid_password(user: str):
     try:
+        ldap_url = os.getenv("ldap_url")
+        ldap_base_dn = os.getenv("ldap_base_dn")
+        ldap_password = os.getenv("ldap_password")
+
         # Ensure all required variables are defined and strings
         if not all(isinstance(arg, str) for arg in [ldap_url, ldap_base_dn, ldap_password]):
             raise ValueError("ldap_url, ldap_base_dn, and ldap_password must all be strings.")
@@ -207,6 +210,9 @@ def get_gid_password(user: str):
 
 def add_qr_to_user(cn: str, code: str):
     try:
+        ldap_url = os.getenv("ldap_url")
+        ldap_base_dn = os.getenv("ldap_base_dn")
+        ldap_password = os.getenv("ldap_password")
         # Connect to the LDAP server
         # Setup the server and the connection
         server = Server(ldap_url, get_info=ALL)
@@ -248,6 +254,8 @@ def create_jwt_token(login_info):
         'exp': login_info["info"]["exp"],  # Token will expire in 1 hour
     }
     # Your secret key (guard it with your life!)
+    jwt_secret_key = os.getenv("jwt_secret_key")
+    jwt_algorithm = os.getenv("jwt_algorithm")
 
     token = jwt.encode(payload, jwt_secret_key, algorithm=jwt_algorithm)
     return token
@@ -255,6 +263,10 @@ def create_jwt_token(login_info):
 
 def query_ldap_(search_filter, search_attributes):
     try:
+        ldap_url = os.getenv("ldap_url")
+        ldap_base_dn = os.getenv("ldap_base_dn")
+        ldap_password = os.getenv("ldap_password")
+
         # Ensure all are strings
         if not all(isinstance(arg, str) for arg in [ldap_url, ldap_base_dn, ldap_password]):
             raise ValueError("ldap_url, ldap_base_dn, and ldap_password must all be strings.")
@@ -294,6 +306,9 @@ def query_ldap_(search_filter, search_attributes):
 def get_groups(user_repository, user):
     try:
         # Ensure all are strings
+        ldap_url = os.getenv("ldap_url")
+        ldap_base_dn = os.getenv("ldap_base_dn")
+        ldap_password = os.getenv("ldap_password")
         if not all(isinstance(arg, str) for arg in [ldap_url, ldap_base_dn, ldap_password]):
             raise ValueError("ldap_url, ldap_base_dn, and ldap_password must all be strings.")
 
