@@ -3,26 +3,45 @@ import os
 import time
 from functools import wraps
 
-from dotenv import load_dotenv
-if os.getenv("ENVIRONNEMENT") == "PROD":
-    load_dotenv("config/.env")
-else:
-    load_dotenv()
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+Base = declarative_base()
+SessionLocal = None
+engine = None
 
 os.environ["PGVECTOR_CONNECTION_STRING"] = (
     f"postgresql+psycopg://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
     f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME_RAG')}?sslmode=require"
 )
 
+
+def init_db():
+    global engine, SessionLocal
+
+    engine = create_engine(os.getenv("PGVECTOR_CONNECTION_STRING"))
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+# Dependency to get DB session
+async def get_db():
+    if SessionLocal is None:
+        raise RuntimeError("SessionLocal is not initialized. Call init_db() first.")
+
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 def load_config():
     global ldap_url
     logging.info("--------------------------------------------------------")
     logging.info("Loading config")
-
-
-
 
     environment = os.getenv("ENVIRONNEMENT")
     logging.info(f"Environment: {environment}")

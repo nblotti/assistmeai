@@ -6,7 +6,6 @@ from langchain_postgres.vectorstores import PGVector
 
 from embeddings.azure_openai import embeddings
 
-load_dotenv()
 
 # We use postgresql rather than postgres in the conn string since LangChain uses sqlalchemy under the hood
 # You can remove the ?sslmode=require if you have a local PostgreSQL instance running without SSL

@@ -78,11 +78,6 @@ class SharedGroupDocumentRepositoryDAOProvider:
         return SharedGroupDocumentRepository()
 
 
-class AssistantDocumentRepositoryDAOProvider:
-
-    def get_dependency(self):
-        return AssistantDocumentRepository()
-
 
 class DocumentManagerProvider:
 

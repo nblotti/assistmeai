@@ -1,7 +1,12 @@
+from fastapi import Depends
+from requests import Session
+
 from DependencyManager import DocumentDAOProvider, ConversationDAOProvider, MessageDAOProvider, CategoryDAOProvider, \
     UserDAOProvider, AssistantsDAOProvider, SharedGroupRepositoryDAOProvider, SharedGroupUserRepositoryDAOProvider, \
     SharedGroupDocumentRepositoryDAOProvider, EmbeddingRepositoryProvider, DocumentManagerProvider, \
-    AssistantDocumentRepositoryDAOProvider, AssistantManagerProvider, tool_manager_provider
+    AssistantManagerProvider, tool_manager_provider
+from assistants.AssistantDocumentRepository import AssistantDocumentRepository
+from config import get_db
 
 document_dao_provider = DocumentDAOProvider()
 conversation_dao_provider = ConversationDAOProvider()
@@ -15,7 +20,12 @@ share_group_document_dao_provider = SharedGroupDocumentRepositoryDAOProvider()
 embeddings_dao_provider = EmbeddingRepositoryProvider()
 document_manager_provider = DocumentManagerProvider(document_dao_provider.get_dependency(),
                                                     embeddings_dao_provider.get_dependency())
-assistant_document_dao_provider = AssistantDocumentRepositoryDAOProvider()
+
+
+def assistant_document_dao_provider(session: Session = Depends(get_db)) -> AssistantDocumentRepository:
+    return AssistantDocumentRepository(session)
+
+
 assistant_manager_provider = AssistantManagerProvider(message_dao_provider.get_dependency(),
                                                       assistants_dao_provider.get_dependency(),
                                                       tool_manager_provider.get_dependency())

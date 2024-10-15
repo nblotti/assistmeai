@@ -11,6 +11,7 @@ from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
+import config
 from assistants.AssistantDocumentRepository import AssistantDocumentRepository
 from document.Document import Document
 from document.DocumentManager import DocumentManager
@@ -93,10 +94,17 @@ def powerpoint(a) -> []:
 
 
 @tool
-def summarize(assistant_id: str, query: str) -> str:
+async def summarize(assistant_id: str, query: str) -> str:
     """This tool is used to search into documents in the user's library."""
+
+    # Manually create a dependency injection context
+    async def override_assistant_repository():
+        async for session in config.get_db():
+            yield AssistantDocumentRepository(session)
+
+    assistant_document_manager = await override_assistant_repository().__anext__()
+
     document_manager = DocumentManager(DocumentsRepository(), EmbeddingRepository())
-    assistant_document_manager = AssistantDocumentRepository()
     logging.debug("Assistant id: %s", assistant_id)
     assistants_document = assistant_document_manager.list_by_assistant_id(assistant_id)
 

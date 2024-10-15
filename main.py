@@ -1,5 +1,13 @@
-import logging
 import os
+
+from dotenv import load_dotenv
+
+if os.getenv("ENVIRONNEMENT") == "PROD":
+    load_dotenv("config/.env")
+else:
+    load_dotenv()
+
+import logging
 from contextlib import asynccontextmanager
 from datetime import date
 from typing import Optional
@@ -83,6 +91,7 @@ class BearerTokenMiddleware(BaseHTTPMiddleware):
 async def lifespan(app: FastAPI):
     logging.debug("Lifespan startup")
     config.load_config()  # Ensure config is loaded, including SessionLocal initialization
+    config.init_db()  # Initialize the database connection after loading config
     yield
     logging.debug("Lifespan shutdown")
 
