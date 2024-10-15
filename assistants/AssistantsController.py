@@ -3,9 +3,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from starlette.responses import JSONResponse
 
-from DependencyManager import ToolManager, tool_manager_provider
 from ProviderManager import assistant_manager_provider, conversation_dao_provider
-from assistants.Assistant import Assistant
+from assistants.Assistant import Assistant, AssistantCreate
 from assistants.AssistantCommand import AssistantCommand
 from assistants.AssistantsManager import AssistantManager
 from assistants.VBAAssistantCommand import VBAAssistantCommand
@@ -19,9 +18,8 @@ router_assistant = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-assistant_manager_dep = Annotated[AssistantManager, Depends(assistant_manager_provider.get_dependency)]
+assistant_manager_dep = Annotated[AssistantManager, Depends(assistant_manager_provider)]
 conversation_repository_dep = Annotated[ConversationRepository, Depends(conversation_dao_provider.get_dependency)]
-tool_manager_provider = Annotated[ToolManager, Depends(tool_manager_provider.get_dependency)]
 
 
 @router_assistant.post("/command/")
@@ -52,7 +50,8 @@ def execute_get_command(assistant_command: VBAAssistantCommand,
 def execute_get_command(assistant_command: VBAPPTPresentationAssistantCommand,
                         assistant_manager: assistant_manager_dep) -> JSONResponse:
     try:
-        result = assistant_manager.execute_powerpoint_command_vba(assistant_command.conversation_id,assistant_command.command,
+        result = assistant_manager.execute_powerpoint_command_vba(assistant_command.conversation_id,
+                                                                  assistant_command.command,
                                                                   assistant_command.use_documentation)
         return result
     except Exception as e:
@@ -72,7 +71,7 @@ async def execute_get_command(assistant_manager: assistant_manager_dep, command:
 
 
 @router_assistant.post("/")
-async def create(assistant: Assistant, assistant_manager: assistant_manager_dep,
+async def create(assistant: AssistantCreate, assistant_manager: assistant_manager_dep,
                  conversation_repository: conversation_repository_dep):
     conversation: Conversation = Conversation(
         perimeter=assistant.userid,
@@ -89,7 +88,7 @@ async def create(assistant: Assistant, assistant_manager: assistant_manager_dep,
 
 
 @router_assistant.put("/")
-async def update(assistant: Assistant, assistant_manager: assistant_manager_dep):
+async def update(assistant: AssistantCreate, assistant_manager: assistant_manager_dep):
     # 1 on crée l'assistant
     new_assistant = assistant_manager.update(assistant)
 
