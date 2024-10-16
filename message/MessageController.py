@@ -14,7 +14,7 @@ router_message = APIRouter(
 )
 
 
-message_repository_dep = Annotated[MessageRepository, Depends(message_dao_provider.get_dependency)]
+message_repository_dep = Annotated[MessageRepository, Depends(message_dao_provider)]
 
 
 '''

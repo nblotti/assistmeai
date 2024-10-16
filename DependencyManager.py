@@ -3,7 +3,6 @@ from conversation.ConversationRepository import ConversationRepository
 from document.DocumentManager import DocumentManager
 from document.DocumentsRepository import DocumentsRepository
 from embeddings.EmbeddingRepository import EmbeddingRepository
-from message.MessageRepository import MessageRepository
 from rights.CategoryRepository import CategoryRepository
 from rights.UserRepository import UserRepository
 from sharing.SharedGroupDocumentRepository import SharedGroupDocumentRepository
@@ -25,12 +24,6 @@ class DocumentDAOProvider:
 class ConversationDAOProvider:
     def get_dependency(self):
         return ConversationRepository()
-
-
-class MessageDAOProvider:
-
-    def get_dependency(self):
-        return MessageRepository()
 
 
 class ChatManagerProvider:
