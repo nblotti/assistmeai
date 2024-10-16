@@ -76,9 +76,8 @@ class AssistantManager:
             agent_executor = AgentExecutor(agent=agent, tools=power_point_tool, verbose=True)
 
         result = agent_executor.invoke(
-            {"messages": [HumanMessage(f"'''{command}'''")]}
+            {"messages": [HumanMessage(command)]}
         )
-
 
         return result["output"]
 
@@ -128,12 +127,12 @@ class AssistantManager:
                 )
 
                 result = conversational_agent_executor.invoke(
-                    {"messages": [HumanMessage(f"'''{command}'''")]},
+                    {"messages": [HumanMessage(command)]},
                     {"configurable": {"session_id": "unused"}},
                 )
             else:
                 result = agent_executor.invoke(
-                    {"messages": [HumanMessage(f"'''{command}'''")]}
+                    {"messages": [HumanMessage(command)]}
                 )
 
         else:
@@ -163,12 +162,12 @@ class AssistantManager:
                 )
 
                 result = conversational_agent_executor.invoke(
-                    {"messages": [HumanMessage(f"'''{command}'''")]},
+                    {"messages": [HumanMessage(command)]},
                     {"configurable": {"session_id": "unused"}},
                 )
             else:
                 result = agent_executor.invoke(
-                    {"messages": [HumanMessage(f"'''{command}'''")]}
+                    {"messages": [HumanMessage(command)]}
                 )
 
         return result["output"]

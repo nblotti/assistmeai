@@ -14,5 +14,5 @@ class Message(Base):
     id = Column(Integer, primary_key=True, index=True)
     conversation_id = Column(Integer, nullable=False)
     role = Column(String, nullable=False)
-    content = Column(Integer, nullable=False)
+    content = Column(String, nullable=False)
     created_on = Column(DateTime, nullable=True, default=datetime.now(pytz.utc))

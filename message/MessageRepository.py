@@ -14,9 +14,9 @@ class MessageRepository(BaseAlchemyRepository):
     def save(self, conversation_id, message: BaseMessage):
 
         new_message = Message(
-            conversation_id=conversation_id,
+            conversation_id=int(conversation_id),
             role=message.type,
-            content=int(message.content),
+            content=message.content,
             created_on=datetime.now(),
 
         )
