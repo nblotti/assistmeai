@@ -1,5 +1,5 @@
-from chat.ChatManager import ChatManager
 from document.DocumentManager import DocumentManager
+from chat.ChatManager import ChatManager
 from document.DocumentsRepository import DocumentsRepository
 from embeddings.DocumentsEmbeddingsRepository import DocumentsEmbeddingsRepository
 from embeddings.EmbeddingRepository import EmbeddingRepository

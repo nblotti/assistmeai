@@ -43,7 +43,16 @@ class DocumentManager:
                           document_type: DocumentType = DocumentType.DOCUMENT):
 
         file_name_pdf_extension = filename[:-4]  # Remove last 5 characters (".docx")
-        document = self.document_repository.save(file_name_pdf_extension, owner, contents, document_type)
+
+        new_document = DocumentCreate(
+            owner=owner,
+            name=filename,
+            perimeter=owner,
+            document=contents,
+            document_type=document_type
+        )
+
+        document = self.document_repository.save(new_document)
 
         temp_file = "./" + document.id + ".document"
         with open(temp_file, "wb") as file_w:
@@ -67,7 +76,7 @@ class DocumentManager:
             print(f"Error deleting file '{file_path}': {e}")
 
     def delete(self, blob_id: str):
-        self.document_repository.delete_by_id(blob_id)
+        return self.document_repository.delete_by_id(int(blob_id))
 
     def list_documents(self, user: str):
         return self.list_documents_by_type(user, DocumentType.DOCUMENT)

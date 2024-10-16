@@ -61,7 +61,7 @@ async def conversations(conversation_repository: conversation_repository_dep, co
     :param conversation_id: Identifier of the conversation to be deleted.
     :return: HTTP response with status code 200 indicating successful deletion of the conversation.
     """
-    conversation_repository.delete(conversation_id)
+    conversation_repository.delete(int(conversation_id))
 
     return Response(status_code=200)
 

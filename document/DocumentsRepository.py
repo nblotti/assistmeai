@@ -1,5 +1,6 @@
 from typing import List
 
+from sqlalchemy import and_
 from sqlalchemy.exc import SQLAlchemyError
 
 from BaseAlchemyRepository import BaseAlchemyRepository
@@ -7,10 +8,7 @@ from document.Document import Document, DocumentType, DocumentCreate
 
 
 class DocumentsRepository(BaseAlchemyRepository):
-    DELETE_EMBEDDING_QUERY = """DELETE FROM langchain_pg_embedding WHERE cmetadata ->>'blob_id' =%s;"""
-
-    GET_EMBEDDING_QUERY = """SELECT cmetadata ->>'text' FROM langchain_pg_embedding 
-    WHERE cmetadata ->>'blob_id' in %s;"""
+    SELECT_DOCUMENT_STREAM_QUERY = """SELECT * FROM document WHERE id=%s """
 
     # Function to store blob data in SQLite
     def save(self, document: DocumentCreate) -> DocumentCreate:
@@ -27,7 +25,8 @@ class DocumentsRepository(BaseAlchemyRepository):
             self.db.commit()
             self.db.refresh(new_document)
             self.db.close()
-            document.id = new_document.id
+            document.id = str(new_document.id)
+            document.document = None
             return document
         except SQLAlchemyError as e:
             self.db.rollback()
@@ -52,7 +51,7 @@ class DocumentsRepository(BaseAlchemyRepository):
             if not result:
                 return None
             return DocumentCreate(
-                id=result[0],
+                id=str(result[0]),
                 name=result[1],
                 created_on=result[2],
                 perimeter=result[3],
@@ -75,11 +74,13 @@ class DocumentsRepository(BaseAlchemyRepository):
         if document_type == DocumentType.ALL:
             documents: List[Document] = self.db.query(Document).filter(Document.owner == user).all()
         else:
-            documents: List[Document] = self.db.query(Document).filter(Document.document_type == document_type).all()
+            documents: List[Document] = self.db.query(Document).filter(
+                and_(Document.owner == user,
+                     Document.document_type == document_type)).all()
 
         return [self.map_to_document(doc) for doc in documents]
 
-    def delete_by_id(self, blob_id: str):
+    def delete_by_id(self, blob_id: int):
 
         affected_rows = self.db.query(Document).filter(Document.id == blob_id).delete(
             synchronize_session='auto')
@@ -92,12 +93,12 @@ class DocumentsRepository(BaseAlchemyRepository):
         :return: AssistantsDocumentList object containing the mapped values.
         """
         return DocumentCreate(
-            id=Document.id,
-            name=Document.name,
-            owner=Document.owner,
-            perimeter=Document.perimeter,
-            created_on=Document.created_on,
-            summary_id=Document.summary_id,
-            summary_status=Document.summary_status,
-            document_type=Document.document_type
+            id=str(document.id),
+            name=document.name,
+            owner=document.owner,
+            perimeter=document.perimeter,
+            created_on=document.created_on,
+            summary_id=document.summary_id,
+            summary_status=document.summary_status,
+            document_type=document.document_type
         )

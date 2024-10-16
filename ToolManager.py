@@ -13,9 +13,9 @@ from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
 import config
-from assistants.AssistantDocumentRepository import AssistantDocumentRepository
 from document.Document import Document
 from document.DocumentManager import DocumentManager
+from assistants.AssistantDocumentRepository import AssistantDocumentRepository
 from document.DocumentsRepository import DocumentsRepository
 from embeddings.CustomAzurePGVectorRetriever import CustomAzurePGVectorRetriever
 from embeddings.EmbeddingRepository import EmbeddingRepository

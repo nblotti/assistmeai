@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Annotated, Optional
+from typing import Annotated
 
 from fastapi import UploadFile, File, APIRouter, Form, Depends, Query, HTTPException
 from starlette.responses import StreamingResponse, Response
@@ -50,18 +50,9 @@ async def upload_file(
 def delete(
         document_manager: document_manager_dep,
         blob_id: str):
-    document_manager.delete(blob_id)
+    rows = document_manager.delete(blob_id)
 
     return Response(status_code=200)
-
-
-
-
-@router_file.get("/")
-async def list_document(document_manager: document_manager_dep, user: Optional[str] = None):
-    if user is None:
-        return Response(status_code=404)
-    return document_manager.list_documents(user)
 
 
 @router_file.get("/users/{user}/documents")
@@ -83,35 +74,19 @@ async def download_blob(document_manager: document_manager_dep, blob_id: str, re
 
     if document_data:
         # Set headers for the response
-        response.headers["Content-Disposition"] = f"attachment; filename={document_data['name']}"
+        response.headers["Content-Disposition"] = f"attachment; filename={document_data.name}"
         response.headers["Content-Type"] = "application/octet-stream"
-        response.headers["X-Perimeter"] = document_data['perimeter']
-        response.headers["X-Created-On"] = document_data['created_on'].strftime("%Y-%m-%d %H:%M:%S") if document_data[
-            'created_on'] else ""
+        response.headers["X-Perimeter"] = document_data.perimeter
+        response.headers["X-Created-On"] = document_data.created_on.strftime(
+            "%Y-%m-%d %H:%M:%S") if document_data.created_on else ""
 
         def stream_generator():
-            yield document_data['document']
+            yield document_data.document
 
         # Stream the content
         return StreamingResponse(stream_generator(), media_type="application/object")
     else:
         raise HTTPException(status_code=404, detail="Blob not found")
-@router_file.get("/{blob_id}/")
-async def download_blob(document_manager: document_manager_dep, blob_id: str,
-                        response: Response):
-    blob_data = document_manager.get_stream_by_id(blob_id)
-
-    if blob_data:
-        res = blob_data
-
-        # Set headers for the response
-        response.headers["Content-Disposition"] = f"attachment; filename={res[0]}"
-        response.headers["Content-Type"] = "application/octet-stream"
-
-        return StreamingResponse(iter([bytes(res[1])]), media_type="application/document")
-        # Stream the content
-    else:
-        return {"error": "Blob not found"}
 
 
 class FileType(Enum):

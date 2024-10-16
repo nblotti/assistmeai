@@ -25,7 +25,7 @@ class ConversationRepository(BaseAlchemyRepository):
         conversation.id = new_conversation.id
         return conversation
 
-    def get_conversation_by_id(self, conversation_id:int) -> ConversationCreate:
+    def get_conversation_by_id(self, conversation_id: int) -> ConversationCreate:
 
         results = self.db.query(Conversation, Document).join(Document, Conversation.document_id == Document.id,
                                                              isouter=True).filter(
@@ -63,14 +63,8 @@ class ConversationRepository(BaseAlchemyRepository):
 
         return conversations
 
-    def delete(self, conversation_id: str):
+    def delete(self, conversation_id: int):
         affected_rows = self.db.query(Conversation).filter(Conversation.id == conversation_id).delete(
-            synchronize_session='auto')
-        self.db.commit()
-        return affected_rows
-
-    def delete_by_file_id(self, document_id: str):
-        affected_rows = self.db.query(Conversation).filter(Conversation.document_id == int(document_id)).delete(
             synchronize_session='auto')
         self.db.commit()
         return affected_rows
