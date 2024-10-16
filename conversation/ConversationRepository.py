@@ -3,25 +3,12 @@ from typing import List
 from sqlalchemy import and_
 
 from BaseAlchemyRepository import BaseAlchemyRepository
+from assistants.Assistant import Assistant
 from conversation.Conversation import Conversation, ConversationCreate
 from document.Document import Document
 
 
 class ConversationRepository(BaseAlchemyRepository):
-    GET_CONVERSATION_BY_PERIMETER_QUERY = """SELECT c.id, c.perimeter,c.description, c.document_id,COALESCE(p.name, '') 
-    AS document_name,c.created_on FROM conversation c 
-    LEFT JOIN document p ON c.document_id = p.id 
-    LEFT JOIN assistants a ON a.conversation_id::TEXT = c.id::TEXT 
-    WHERE c.perimeter = %s AND a.conversation_id IS NULL;"""
-
-    GET_CONVERSATION_BY_ID_QUERY = """SELECT c.id,c.perimeter, c.description, c.document_id, 
-    COALESCE(p.name, '') AS document_name, c.created_on FROM conversation c 
-    left outer join  document p on c.document_id = p.id where c.id=%s"""
-
-    GET_CONVERSATION_BY_FILE_ID_QUERY = """SELECT c.id,c.perimeter, c.description, c.document_id, 
-      COALESCE(p.name, '') AS document_name, c.created_on FROM conversation c 
-      left outer join  document p on c.document_id = p.id where c.document_id=%s and c.perimeter=%s
-      order by c.created_on DESC"""
 
     # Function to store a message data in SQLite
 
@@ -38,36 +25,40 @@ class ConversationRepository(BaseAlchemyRepository):
         conversation.id = new_conversation.id
         return conversation
 
-    def get_conversation_by_id(self, conversation_id) -> ConversationCreate:
+    def get_conversation_by_id(self, conversation_id:int) -> ConversationCreate:
 
-        results = (self.db.query(Document, Conversation).filter(Conversation.id == conversation_id)
-                   .join(Conversation, Document.id == Conversation.document_id, isouter=True).all())
+        results = self.db.query(Conversation, Document).join(Document, Conversation.document_id == Document.id,
+                                                             isouter=True).filter(
+            Conversation.id == conversation_id).first()
 
-        for document, conversation in results:
-            document_name = document.name if document else ""
+        if len(results) > 2:
+            raise Exception("Too many conversation for this ID !")
 
-            # map conversation create
+        conversation = results[0]
+        document = results[1]
+        document_name = document.name if document else ""
+        new_conversation = self.map_to_conversation(conversation, document_name)
 
-        return None
+        return new_conversation
 
     # Function to get all messages  by conversation_id data from SQLite
     def get_conversation_by_perimeter(self, perimeter) -> List[ConversationCreate]:
-        results = (self.db.query(Conversation, Document).join(Document,
-                                                              Conversation.document_id == Document.id,
-                                                              isouter=True)
-                   .filter(Conversation.perimeter == perimeter).all())
+        results = (self.db.query(Conversation, Document, Assistant).join(Document,
+                                                                         Conversation.document_id == Document.id,
+                                                                         isouter=True)
+                   .join(Assistant,
+                         Assistant.conversation_id == Conversation.id,
+                         isouter=True)
+                   .filter(Conversation.perimeter == perimeter).order_by(Conversation.id).all())
 
         conversations = []
-        for conversation, document in results:
+        for conversation, document, assistant in results:
+            if assistant is not None:
+                continue
             document_name = document.name if document else ""
-            conversations.append(ConversationCreate(
-                id=str(conversation.id),
-                perimeter=conversation.perimeter,
-                document_id=str(conversation.document_id),
-                pdf_name=document_name,
-                description=conversation.description,
-                created_on=conversation.created_on.strftime("%d.%m.%Y")
-            ))
+
+            new_conversation = self.map_to_conversation(conversation, document_name)
+            conversations.append(new_conversation)
             # map conversation create
 
         return conversations
@@ -84,15 +75,27 @@ class ConversationRepository(BaseAlchemyRepository):
         self.db.commit()
         return affected_rows
 
-    def get_conversation_by_document_id(self, document_id, user_id):
-        results = (self.db.query(Document, Conversation).filter(
-            and_(Conversation.id == document_id,
-                 Conversation.perimeter == user_id))
-                   .join(Conversation, Document.id == Conversation.document_id, isouter=True).all())
+    def get_conversation_by_document_id(self, document_id: int, user_id: str):
+        results = self.db.query(Conversation, Document).join(Document, Conversation.document_id == Document.id,
+                                                             isouter=True).filter(
+            and_(
+                Conversation.perimeter == user_id,
+                Conversation.document_id == document_id)).all()
 
-        for document, conversation in results:
+        conversations = []
+        for conversation, document in results:
             document_name = document.name if document else ""
+            new_conversation = self.map_to_conversation(conversation, document_name)
+            conversations.append(new_conversation)
 
-            # map conversation create
+        return conversations
 
-        return None
+    def map_to_conversation(self, conversation: Conversation, pdf_name: str) -> ConversationCreate:
+        return ConversationCreate(
+            id=str(conversation.id),
+            perimeter=conversation.perimeter,
+            pdf_id=str(conversation.document_id),
+            pdf_name=pdf_name,
+            description=conversation.description,
+            created_on=conversation.created_on.strftime("%d.%m.%Y")
+        )

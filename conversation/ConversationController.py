@@ -50,8 +50,8 @@ async def conversations(conversation_repository: conversation_repository_dep, do
     :param user_id: The unique identifier of the user requesting the conversations. This is an optional parameter.
     :return: A JSON object containing the conversations related to the specified document, serialized using CustomEncoder.
     """
-    res = conversation_repository.get_conversation_by_document_id(document_id, user_id)
-    return json.loads(json.dumps(res, cls=CustomEncoder))
+    res = conversation_repository.get_conversation_by_document_id(int(document_id), user_id)
+    return res
 
 
 @router_conversation.delete("/{conversation_id}/")

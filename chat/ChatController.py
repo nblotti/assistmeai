@@ -8,7 +8,7 @@ from starlette.responses import JSONResponse
 
 from ProviderManager import message_dao_provider, conversation_dao_provider, document_manager_provider
 from chat.azure_openai import chat_gpt_4o_mini
-from conversation.Conversation import Conversation
+from conversation.Conversation import ConversationCreate
 from conversation.ConversationRepository import ConversationRepository
 from document.DocumentManager import DocumentManager
 from embeddings.CustomAzurePGVectorRetriever import CustomAzurePGVectorRetriever
@@ -42,7 +42,7 @@ def format_docs(docs):
 async def message(message_repository: message_repository_dep, conversation_repository: conversation_repository_dep,
                   command: str, conversation_id: str, perimeter: str = Query(None)):
     # Get the current conversation and build document memory
-    cur_conversation: Conversation = conversation_repository.get_conversation_by_id(conversation_id)
+    cur_conversation: ConversationCreate = conversation_repository.get_conversation_by_id(int(conversation_id))
     memory = build_agent_memory(message_repository, conversation_id)
 
     # Determine the appropriate retriever based on the perimeter or conversation PDF ID
