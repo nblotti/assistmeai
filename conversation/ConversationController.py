@@ -6,7 +6,7 @@ from fastapi import Response
 
 from CustomEncoder import CustomEncoder
 from ProviderManager import message_dao_provider, conversation_dao_provider, document_manager_provider
-from conversation.Conversation import Conversation
+from conversation.Conversation import ConversationCreate
 from conversation.ConversationRepository import ConversationRepository
 from document import DocumentManager
 from message.MessageRepository import MessageRepository
@@ -26,8 +26,8 @@ Conversation entry point
 '''
 
 message_repository_dep = Annotated[MessageRepository, Depends(message_dao_provider)]
-conversation_repository_dep = Annotated[ConversationRepository, Depends(conversation_dao_provider.get_dependency)]
-document_manager_dep = Annotated[DocumentManager, Depends(document_manager_provider.get_dependency)]
+conversation_repository_dep = Annotated[ConversationRepository, Depends(conversation_dao_provider)]
+document_manager_dep = Annotated[DocumentManager, Depends(document_manager_provider)]
 
 
 @router_conversation.get("/perimeter/{perimeter}/")
@@ -38,7 +38,7 @@ async def conversations(conversation_repository: conversation_repository_dep, pe
     :return: A JSON object containing conversations filtered by the given perimeter.
     """
     res = conversation_repository.get_conversation_by_perimeter(perimeter)
-    return json.loads(json.dumps(res, cls=CustomEncoder))
+    return res
 
 
 @router_conversation.get("/document/{document_id}/")
@@ -68,7 +68,7 @@ async def conversations(conversation_repository: conversation_repository_dep, co
 
 @router_conversation.post("/")
 async def conversation(conversation_repository: conversation_repository_dep,
-                       document_manager: document_manager_dep, new_conversation: Conversation):
+                       document_manager: document_manager_dep, new_conversation: ConversationCreate):
     """
     :param conversation_repository: The repository dependency to handle conversation persistence.
     :param document_manager: The dependency to handle document management and retrieval.

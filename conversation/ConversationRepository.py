@@ -1,13 +1,13 @@
-from BaseRepository import BaseRepository
-from conversation.Conversation import Conversation
+from typing import List
+
+from sqlalchemy import and_
+
+from BaseAlchemyRepository import BaseAlchemyRepository
+from conversation.Conversation import Conversation, ConversationCreate
+from document.Document import Document
 
 
-class ConversationRepository(BaseRepository):
-    INSERT_DOCUMENT_CONVERSATION_QUERY = """INSERT INTO conversation (document_id, perimeter) VALUES (%s, 
-    %s) RETURNING id, created_on;"""
-    INSERT_STANDALONE_CONVERSATION_QUERY = """INSERT INTO conversation (perimeter) VALUES (%s) RETURNING id, 
-    created_on;"""
-
+class ConversationRepository(BaseAlchemyRepository):
     GET_CONVERSATION_BY_PERIMETER_QUERY = """SELECT c.id, c.perimeter,c.description, c.document_id,COALESCE(p.name, '') 
     AS document_name,c.created_on FROM conversation c 
     LEFT JOIN document p ON c.document_id = p.id 
@@ -23,98 +23,76 @@ class ConversationRepository(BaseRepository):
       left outer join  document p on c.document_id = p.id where c.document_id=%s and c.perimeter=%s
       order by c.created_on DESC"""
 
-    GET_CONVERSATION_COUNT_BY_DOCUMENT_ID_QUERY = """SELECT count(*) from conversation c where c.document_id=%s"""
-
-    DELETE_CONVERSATION_BY_ID_QUERY = "DELETE FROM conversation where id=%s"
-    DELETE_CONVERSATION_BY_DOCUMENT_ID_QUERY = "DELETE FROM conversation where document_id=%s"
-    DELETE_ALL_QUERY = "DELETE FROM conversation"
-
     # Function to store a message data in SQLite
 
-    def save(self, conversation: Conversation):
-        conn = self.build_connection()
-        cursor = conn.cursor()
-        if conversation.pdf_id is not None and conversation.pdf_id != 0:
-            cursor.execute(self.INSERT_DOCUMENT_CONVERSATION_QUERY,
-                           (conversation.pdf_id, conversation.perimeter))
-        else:
-            cursor.execute(self.INSERT_STANDALONE_CONVERSATION_QUERY, (conversation.perimeter,))
+    def save(self, conversation: ConversationCreate):
+        new_conversation = Conversation(
+            perimeter=conversation.perimeter,
+            document_id=conversation.pdf_id,
+            description=conversation.description
 
-        row = cursor.fetchone()
-        conversation.id = row[0]
-        conversation.created_on = row[1].strftime("%d.%m.%Y")
-        conn.commit()
-        conn.close()
+        )
+        self.db.add(new_conversation)
+        self.db.commit()
+        self.db.refresh(new_conversation)
+        conversation.id = new_conversation.id
         return conversation
 
-    def get_conversation_by_id(self, conversation_id) -> Conversation:
-        conn = self.build_connection()
-        cursor = conn.cursor()
-        cursor.execute(self.GET_CONVERSATION_BY_ID_QUERY, (conversation_id,))
-        row = cursor.fetchone()
+    def get_conversation_by_id(self, conversation_id) -> ConversationCreate:
 
-        conversation = Conversation(id=row[0], perimeter=row[1], description=row[2], pdf_id=row[3], pdf_name=row[4],
-                                    created_on=row[5].strftime("%d.%m.%Y"))
+        results = (self.db.query(Document, Conversation).filter(Conversation.id == conversation_id)
+                   .join(Conversation, Document.id == Conversation.document_id, isouter=True).all())
 
-        conn.close()
-        return conversation
+        for document, conversation in results:
+            document_name = document.name if document else ""
+
+            # map conversation create
+
+        return None
 
     # Function to get all messages  by conversation_id data from SQLite
-    def get_conversation_by_perimeter(self, perimeter):
-        conn = self.build_connection()
-        cursor = conn.cursor()
-        cursor.execute(self.GET_CONVERSATION_BY_PERIMETER_QUERY, (perimeter,))
-        rows = cursor.fetchall()
+    def get_conversation_by_perimeter(self, perimeter) -> List[ConversationCreate]:
+        results = (self.db.query(Conversation, Document).join(Document,
+                                                              Conversation.document_id == Document.id,
+                                                              isouter=True)
+                   .filter(Conversation.perimeter == perimeter).all())
 
-        conversations = [
-            Conversation(id=row[0], perimeter=row[1], description=row[2], pdf_id=row[3], pdf_name=row[4],
-                         created_on=row[5].strftime("%d.%m.%Y")).dict()
-            for row in rows]
+        conversations = []
+        for conversation, document in results:
+            document_name = document.name if document else ""
+            conversations.append(ConversationCreate(
+                id=str(conversation.id),
+                perimeter=conversation.perimeter,
+                document_id=str(conversation.document_id),
+                pdf_name=document_name,
+                description=conversation.description,
+                created_on=conversation.created_on.strftime("%d.%m.%Y")
+            ))
+            # map conversation create
 
-        conn.close()
         return conversations
 
-    def delete(self, id: str):
-        conn = self.build_connection()
-        cursor = conn.cursor()
-        cursor.execute(self.DELETE_CONVERSATION_BY_ID_QUERY, (id,))
-        conn.commit()
-        conn.close()
+    def delete(self, conversation_id: str):
+        affected_rows = self.db.query(Conversation).filter(Conversation.id == conversation_id).delete(
+            synchronize_session='auto')
+        self.db.commit()
+        return affected_rows
 
-    def delete_by_file_id(self, blob_id: str):
-        conn = self.build_connection()
-        cursor = conn.cursor()
-        cursor.execute(self.DELETE_CONVERSATION_BY_DOCUMENT_ID_QUERY, (blob_id,))
-        conn.commit()
-        conn.close()
-
-    def delete_all(self):
-        conn = self.build_connection()
-        cursor = conn.cursor()
-        cursor.execute(self.DELETE_ALL_QUERY)
-        conn.commit()
-        conn.close()
+    def delete_by_file_id(self, document_id: str):
+        affected_rows = self.db.query(Conversation).filter(Conversation.document_id == int(document_id)).delete(
+            synchronize_session='auto')
+        self.db.commit()
+        return affected_rows
 
     def get_conversation_by_document_id(self, document_id, user_id):
-        conn = self.build_connection()
-        cursor = conn.cursor()
-        cursor.execute(self.GET_CONVERSATION_BY_FILE_ID_QUERY, (document_id, user_id))
-        rows = cursor.fetchall()
+        results = (self.db.query(Document, Conversation).filter(
+            and_(Conversation.id == document_id,
+                 Conversation.perimeter == user_id))
+                   .join(Conversation, Document.id == Conversation.document_id, isouter=True).all())
 
-        conversations = [
-            Conversation(id=row[0], perimeter=row[1], description=row[2], pdf_id=row[3], pdf_name=row[4],
-                         created_on=row[5].strftime("%d.%m.%Y")).dict()
-            for row in rows]
+        for document, conversation in results:
+            document_name = document.name if document else ""
 
-        conn.close()
-        return conversations
+            # map conversation create
 
-    def get_conversation_count_by_document_id(self, pdf_id):
-        conn = self.build_connection()
-        cursor = conn.cursor()
-        cursor.execute(self.GET_CONVERSATION_COUNT_BY_DOCUMENT_ID_QUERY, (pdf_id,))
-
-        count = cursor.fetchone()[0]
-
-        conn.close()
-        return count
+        return None

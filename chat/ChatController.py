@@ -30,8 +30,8 @@ Command entry point
 '''
 
 message_repository_dep = Annotated[MessageRepository, Depends(message_dao_provider)]
-conversation_repository_dep = Annotated[ConversationRepository, Depends(conversation_dao_provider.get_dependency)]
-document_manager_dep = Annotated[DocumentManager, Depends(document_manager_provider.get_dependency)]
+conversation_repository_dep = Annotated[ConversationRepository, Depends(conversation_dao_provider)]
+document_manager_dep = Annotated[DocumentManager, Depends(document_manager_provider)]
 
 
 def format_docs(docs):

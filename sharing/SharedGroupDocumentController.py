@@ -18,7 +18,7 @@ router_shared_group_document = APIRouter(
 
 shared_group_document_repository_dep = Annotated[
     SharedGroupDocumentRepository, Depends(share_group_document_dao_provider.get_dependency)]
-document_manager_dep = Annotated[DocumentManager, Depends(document_manager_provider.get_dependency)]
+document_manager_dep = Annotated[DocumentManager, Depends(document_manager_provider)]
 
 
 @router_shared_group_document.post("/", response_model=SharedGroupDocument)

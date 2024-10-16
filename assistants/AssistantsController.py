@@ -19,7 +19,7 @@ router_assistant = APIRouter(
 )
 
 assistant_manager_dep = Annotated[AssistantManager, Depends(assistant_manager_provider)]
-conversation_repository_dep = Annotated[ConversationRepository, Depends(conversation_dao_provider.get_dependency)]
+conversation_repository_dep = Annotated[ConversationRepository, Depends(conversation_dao_provider)]
 
 
 @router_assistant.post("/command/")

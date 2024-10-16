@@ -1,7 +1,7 @@
 from chat.ChatManager import ChatManager
-from conversation.ConversationRepository import ConversationRepository
 from document.DocumentManager import DocumentManager
 from document.DocumentsRepository import DocumentsRepository
+from embeddings.DocumentsEmbeddingsRepository import DocumentsEmbeddingsRepository
 from embeddings.EmbeddingRepository import EmbeddingRepository
 from rights.CategoryRepository import CategoryRepository
 from rights.UserRepository import UserRepository
@@ -15,15 +15,10 @@ class EmbeddingRepositoryProvider:
         return EmbeddingRepository()
 
 
-class DocumentDAOProvider:
+class DocumentsEmbeddingsDAOProvider:
 
     def get_dependency(self):
-        return DocumentsRepository()
-
-
-class ConversationDAOProvider:
-    def get_dependency(self):
-        return ConversationRepository()
+        return DocumentsEmbeddingsRepository()
 
 
 class ChatManagerProvider:
@@ -63,9 +58,11 @@ class SharedGroupDocumentRepositoryDAOProvider:
 
 class DocumentManagerProvider:
 
-    def __init__(self, document_repository: DocumentsRepository, embedding_repository: EmbeddingRepository):
+    def __init__(self, document_embeddings_repository: DocumentsEmbeddingsRepository,
+                 document_repository: DocumentsRepository, embedding_repository: EmbeddingRepository):
+        self.document_embeddings_repository = document_embeddings_repository;
         self.document_repository = document_repository
         self.embedding_repository = embedding_repository
 
     def get_dependency(self):
-        return DocumentManager(self.document_repository, self.embedding_repository)
+        return DocumentManager(self.document_embeddings_repository, self.document_repository, self.embedding_repository)
