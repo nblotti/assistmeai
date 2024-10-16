@@ -7,7 +7,7 @@ from langchain_core.retrievers import BaseRetriever
 
 
 from embeddings.EmbeddingsTools import QueryType
-from vector_stores.postgres import vector_store
+from embeddings.postgres import vector_store
 
 
 class CustomAzurePGVectorRetriever(BaseRetriever):

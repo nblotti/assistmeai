@@ -8,14 +8,15 @@ from typing import Annotated, Optional, List
 import jwt
 import pyotp
 import qrcode
-from fastapi import APIRouter, Depends, Body, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi import HTTPException
 from ldap3 import Server, Connection, ALL, SUBTREE, MODIFY_REPLACE
 from starlette.responses import Response, StreamingResponse
 
 from CustomEncoder import CustomEncoder
 from ProviderManager import user_dao_provider, category_dao_provider
-from rights.CategoryRepository import CategoryRepository
+from document.DocumentCategory import DocumentCategoryCreate, DocumentCategoryByGroupCreate
+from document.DocumentCategoryRepository import DocumentCategoryRepository
 from rights.UserRepository import UserRepository
 
 router_user = APIRouter(
@@ -25,19 +26,25 @@ router_user = APIRouter(
 )
 
 user_repository_dep = Annotated[UserRepository, Depends(user_dao_provider.get_dependency)]
-category_repository_dep = Annotated[CategoryRepository, Depends(category_dao_provider.get_dependency)]
+category_repository_dep = Annotated[DocumentCategoryRepository, Depends(category_dao_provider)]
 
 
 @router_user.post("/login")
-async def do_login(user_repository: user_repository_dep, category_repository: category_repository_dep,
+async def do_login(category_repository: category_repository_dep,
                    request: Request):
-    # Read the payload from the request
+    """
+    The use has logged in with SSO. He loads his groups.
+    :param category_repository: Dependency injection for the category repository
+    :param request: The HTTP request object containing the login details
+    :return: A dictionary containing the user's info, LDAP groups, categories, and JWT token
+    """
     payload = await request.json()
 
     user = payload["info"]["sub"]
 
-    groups = get_groups(user_repository, user)
-    categories = get_categories(category_repository, groups, user)
+    # on obtient les groupes LDAP de l'utilisateur
+    groups = get_ldap_groups(user)
+    categories: List[DocumentCategoryByGroupCreate] = get_categories(category_repository, groups, user)
 
     return {"user": user,
             "groups": groups,
@@ -46,7 +53,7 @@ async def do_login(user_repository: user_repository_dep, category_repository: ca
 
 
 @router_user.post("/login/local")
-async def do_login_local(user_repository: user_repository_dep, category_repository: category_repository_dep,
+async def do_login_local(category_repository: category_repository_dep,
                          request: Request):
     # Read the payload from the request
     payload = await request.json()
@@ -70,7 +77,7 @@ async def do_login_local(user_repository: user_repository_dep, category_reposito
     if not generate_qrcode.verify(qrcode):
         raise HTTPException(401, "user not verified")
 
-    groups = get_groups(user_repository, user)
+    groups = get_ldap_groups(user)
     categories = get_categories(category_repository, groups, user)
 
     return {"user": user,
@@ -128,19 +135,6 @@ async def validate():
     pass
 
 
-@router_user.get("/categories")
-async def get_all_categories_for_ids(user_repository: user_repository_dep, category_repository: category_repository_dep,
-                                     user_ids: Optional[List[int]] = Query(None)):
-    results = []
-    for cur_id in user_ids:
-        results.append(str(cur_id))
-    category_ids = user_repository.list_by_group(results)
-
-    category_ids = [result[2] for result in category_ids]
-    categories = category_repository.list_by_group_ids(category_ids)
-    return categories
-
-
 @router_user.get("/")
 async def get_all_users():
     search_filter = "(objectClass=organizationalPerson)"
@@ -165,15 +159,43 @@ async def delete_all(user_repository: user_repository_dep):
     return Response(status_code=200)
 
 
-@router_user.put("/")
+@router_user.put("/categories/")
 async def save(user_repository: user_repository_dep, category_repository: category_repository_dep,
-               new_category=Body(...)):
-    category = category_repository.save(new_category["category_name"])
+               new_category: DocumentCategoryCreate):
+    category = category_repository.save(new_category)
     if not category:
         return Response(status_code=404)
 
     return json.loads(json.dumps(user_repository.save(new_category["user_id"],
                                                       category[0]), cls=CustomEncoder))
+
+
+@router_user.get("/categories")
+async def get_all_categories_for_ids(user_repository: user_repository_dep, category_repository: category_repository_dep,
+                                     user_ids: Optional[List[int]] = Query(None)):
+    results = []
+    for cur_id in user_ids:
+        results.append(str(cur_id))
+    category_ids = user_repository.list_by_group(results)
+
+    category_ids = [result[2] for result in category_ids]
+    categories = category_repository.list_by_group_ids(category_ids)
+    return categories
+
+
+def get_categories(category_repository: category_repository_dep, groups, user) -> List[DocumentCategoryByGroupCreate]:
+    categories: List[DocumentCategoryByGroupCreate] = category_repository.list_by_group_ids(groups)
+
+    initial_entry = DocumentCategoryByGroupCreate(
+        group_id=user,
+        category_id=0,
+        category_name="MyDocuments",
+        enabled=True)
+
+    # Add the initial dictionary at the beginning of the categories list
+    categories.insert(0, initial_entry)
+
+    return categories
 
 
 def get_gid_password(user: str):
@@ -303,7 +325,7 @@ def query_ldap_(search_filter, search_attributes):
         return []
 
 
-def get_groups(user_repository, user):
+def get_ldap_groups(user):
     try:
         # Ensure all are strings
         ldap_url = os.getenv("ldap_url")
@@ -325,15 +347,3 @@ def get_groups(user_repository, user):
     except Exception as e:
         print(f"An error occurred: {e}")
         return []
-
-
-def get_categories(category_repository: category_repository_dep, groups, user):
-    # category_ids = [result[2] for result in category_ids]
-    categories = category_repository.list_by_group_ids(groups)
-    # Create the initial dictionary with user and "MyDocuments"
-    initial_entry = (user, 0, "MyDocuments", True)
-
-    # Add the initial dictionary at the beginning of the categories list
-    categories.insert(0, initial_entry)
-
-    return categories

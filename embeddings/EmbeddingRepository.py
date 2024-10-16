@@ -3,7 +3,7 @@ import uuid
 from langchain_community.document_loaders.pdf import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from vector_stores.postgres import vector_store
+from embeddings.postgres import vector_store
 
 
 class EmbeddingRepository:

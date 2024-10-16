@@ -13,7 +13,7 @@ from conversation.ConversationRepository import ConversationRepository
 from document.DocumentManager import DocumentManager
 from embeddings.CustomAzurePGVectorRetriever import CustomAzurePGVectorRetriever
 from embeddings.EmbeddingsTools import QueryType
-from memories.SqlMessageHistory import build_agent_memory
+from message.SqlMessageHistory import build_agent_memory
 from message.MessageRepository import MessageRepository
 
 chat_ai = APIRouter(

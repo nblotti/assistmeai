@@ -3,11 +3,11 @@ from langchain_core.messages import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableWithMessageHistory
 
-from ToolManager import ToolManager, ToolName
+from assistants.ToolManager import ToolManager, ToolName
 from assistants import AssistantsRepository
 from assistants.Assistant import Assistant
 from chat.azure_openai import chat_gpt_4o, chat_gpt_4, chat_gpt_4o_mini, chat_gpt_35
-from memories.SqlMessageHistory import build_agent_memory
+from message.SqlMessageHistory import build_agent_memory
 from message import MessageRepository
 
 

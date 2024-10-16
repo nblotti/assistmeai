@@ -68,7 +68,7 @@ class DocumentsRepository(BaseAlchemyRepository):
             cursor.close()
             conn.close()
 
-    def list_by_type(self, user, document_type: DocumentType):
+    def list_by_type(self, user: str, document_type: DocumentType):
         """List all documents"""
 
         if document_type == DocumentType.ALL:
@@ -88,10 +88,7 @@ class DocumentsRepository(BaseAlchemyRepository):
         return affected_rows
 
     def map_to_document(self, document: Document) -> DocumentCreate:
-        """
-        :param assistant_document: AssistantsDocument object to be converted.
-        :return: AssistantsDocumentList object containing the mapped values.
-        """
+
         return DocumentCreate(
             id=str(document.id),
             name=document.name,

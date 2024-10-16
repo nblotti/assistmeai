@@ -10,7 +10,6 @@ from message.Message import Message
 
 class MessageRepository(BaseAlchemyRepository):
 
-    # Function to store a message data in SQLite
     def save(self, conversation_id, message: BaseMessage):
 
         new_message = Message(
