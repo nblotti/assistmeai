@@ -84,7 +84,7 @@ class DocumentManager:
     def list_documents_by_type(self, user: str, document_type: DocumentType):
         return self.document_repository.list_by_type(user, document_type)
 
-    def get_by_id(self, blob_id: str, ):
+    def get_by_id(self, blob_id: str, ) -> DocumentCreate:
         return self.document_repository.get_by_id(blob_id)
 
     def get_stream_by_id(self, blob_id: str) -> DocumentCreate:

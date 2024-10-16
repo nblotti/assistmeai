@@ -35,11 +35,11 @@ class DocumentsRepository(BaseAlchemyRepository):
         finally:
             self.db.close()
 
-    def get_by_id(self, blob_id):
+    def get_by_id(self, blob_id) -> DocumentCreate:
 
-        documents: List[Document] = self.db.query(Document).filter(Document.id == blob_id).all()
+        document: Document = self.db.query(Document).filter(Document.id == blob_id).first()
 
-        return [self.map_to_document(doc) for doc in documents]
+        return self.map_to_document(document)
 
     def get_document_by_id(self, blob_id) -> DocumentCreate:
         conn = self.db.connection().connection  # Access the raw DB connection from the session
@@ -97,7 +97,7 @@ class DocumentsRepository(BaseAlchemyRepository):
             name=document.name,
             owner=document.owner,
             perimeter=document.perimeter,
-            created_on=document.created_on,
+            created_on=document.created_on.strftime("%d.%m.%Y"),
             summary_id=document.summary_id,
             summary_status=document.summary_status,
             document_type=document.document_type

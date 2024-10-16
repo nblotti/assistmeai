@@ -4,7 +4,7 @@ from typing import Optional
 
 import pytz
 from pydantic import BaseModel
-from sqlalchemy import Column, Integer, String, Enum, LargeBinary, DateTime
+from sqlalchemy import Column, Integer, String, Enum, LargeBinary, DateTime, Date
 from sqlalchemy.orm import declarative_base, deferred
 
 
@@ -30,7 +30,7 @@ class Document(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
-    created_on = Column(DateTime, nullable=True, default=datetime.now(pytz.utc))
+    created_on = Column(Date, nullable=True, default=datetime.now(pytz.utc))
     perimeter = Column(String, nullable=False, )
     document = deferred(Column(LargeBinary))  # Use deferred
     owner = Column(String, nullable=False)
@@ -44,8 +44,8 @@ class DocumentCreate(BaseModel):
     name: str
     owner: str
     perimeter: str
-    document: Optional[bytes]= None
-    created_on: Optional[date] = None
+    document: Optional[bytes] = None
+    created_on: Optional[str] = None
     summary_id: Optional[int] = None
     summary_status: Optional[Jobstatus] = Jobstatus.NONE
     document_type: Optional[DocumentType] = DocumentType.DOCUMENT

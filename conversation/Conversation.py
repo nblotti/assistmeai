@@ -4,7 +4,7 @@ from typing import Optional
 import pytz
 from pydantic import BaseModel
 from sqlalchemy import Column, String, Integer, ForeignKey, DateTime
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
 
@@ -14,7 +14,7 @@ class Conversation(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     perimeter = Column(String, nullable=False)
-    document_id = Column(Integer, ForeignKey('document.id'), default=0)
+    document_id = Column(Integer, nullable=False, default=0)
     description = Column(String, nullable=False, default="New conversation")
     created_on = Column(DateTime, nullable=False, default=datetime.now(pytz.utc))
 
