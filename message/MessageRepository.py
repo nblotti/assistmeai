@@ -28,7 +28,7 @@ class MessageRepository(BaseAlchemyRepository):
 
     def get_all_messages_by_conversation_id(self, conversation_id) -> list[BaseMessage]:
         messages: List[Message] = self.db.query(Message).filter(
-            Message.conversation_id == int(conversation_id)).all()
+            Message.conversation_id == int(conversation_id)).order_by(Message.id.asc()).all()
         return [self.as_lc_message(message) for message in messages]
 
     def list_messages(self, messages, arguments):
