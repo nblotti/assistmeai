@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Annotated, List
 
 from fastapi import APIRouter, Depends
@@ -53,6 +54,11 @@ def share_file(group: SharedGroupDocumentCreate,
         new_perimeter = old_perimeter.replace(group.group_id, "")
 
     document_manager.create_embeddings_for_pdf(group.document_id, new_perimeter, temp_file, name)
+
+    if os.path.exists(temp_file):
+        os.remove(temp_file)
+    
+    
 
 
 

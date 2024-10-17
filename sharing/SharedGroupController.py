@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Annotated, List
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -79,6 +80,8 @@ def unshare_file(group: SharedGroupCreate,
 
         document_manager.create_embeddings_for_pdf(doc.document_id, new_perimeter, temp_file, name)
 
+        if os.path.exists(temp_file):
+            os.remove(temp_file)
 
 @router_group.delete("/{group_id}/")
 def delete_group(group_id: int, group_repository: shared_group_repository_dep,
