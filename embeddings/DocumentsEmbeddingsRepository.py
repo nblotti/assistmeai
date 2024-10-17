@@ -1,30 +1,22 @@
-from BaseRepository import BaseRepository
+from sqlalchemy import text
+
+from BaseAlchemyRepository import BaseAlchemyRepository
 
 
-class DocumentsEmbeddingsRepository(BaseRepository):
-    DELETE_EMBEDDING_QUERY = """DELETE FROM langchain_pg_embedding WHERE cmetadata ->>'blob_id' =%s;"""
+class DocumentsEmbeddingsRepository(BaseAlchemyRepository):
+    DELETE_EMBEDDING_QUERY = """DELETE FROM langchain_pg_embedding WHERE cmetadata ->>'blob_id' =:blob_id;"""
 
     GET_EMBEDDING_QUERY = """SELECT cmetadata ->>'text' FROM langchain_pg_embedding 
-    WHERE cmetadata ->>'blob_id' in %s;"""
+    WHERE cmetadata ->>'blob_id' in :blob_id;"""
 
     def delete_embeddings_by_id(self, blob_id: str):
-        conn = self.build_connection()
-        cursor = conn.cursor()
-        cursor.execute(self.DELETE_EMBEDDING_QUERY, (blob_id,))
-        conn.commit()
-        cursor.close()
-        conn.close()
+        self.db.execute(text(self.DELETE_EMBEDDING_QUERY), {"blob_id": blob_id})
+        self.db.commit()
 
     def get_embeddings_by_ids(self, blob_ids: [str]):
-        conn = self.build_connection()
-        cursor = conn.cursor()
-        try:
-            cursor.execute(self.GET_EMBEDDING_QUERY,
-                           (tuple(blob_ids),))  # Secure way to pass the list parameter to the query
-            results = cursor.fetchall()
-        finally:
-            conn.commit()  # Commit the transaction if any
-            cursor.close()
-            conn.close()
+        results = self.db.execute(
+            text(self.GET_EMBEDDING_QUERY),
+            {"blob_ids": tuple(blob_ids)}
+        ).fetchall()
 
         return results

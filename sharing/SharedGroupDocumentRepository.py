@@ -1,60 +1,63 @@
-from BaseRepository import BaseRepository
-from sharing.SharedGroupDocument import SharedGroupDocument
+from typing import Sequence, List
+
+from sqlalchemy import select, delete
+from sqlalchemy.exc import SQLAlchemyError
+
+from BaseAlchemyRepository import BaseAlchemyRepository
+from sharing.SharedGroupDocument import SharedGroupDocument, SharedGroupDocumentCreate
 
 
-class SharedGroupDocumentRepository(BaseRepository):
-    INSERT_GROUP_QUERY = """INSERT INTO shared_group_document ( group_id, document_id, creation_date)  
-    VALUES ( %s, %s, %s) RETURNING id;"""
+class SharedGroupDocumentRepository(BaseAlchemyRepository):
 
-    SELECT_GROUP_QUERY = """SELECT id::text,group_id::text, document_id::text, creation_date 
-    FROM shared_group_document WHERE id=%s """
+    def create(self, group: SharedGroupDocumentCreate) -> SharedGroupDocumentCreate:
 
-    DELETE_GROUP_QUERY = """DELETE FROM shared_group_document WHERE id = %s"""
+        try:
+            new_group = SharedGroupDocument(
+                group_id=group.group_id,
+                document_id=group.document_id,
+            )
 
-    SELECT_GROUP_BY_GROUP_ID_QUERY = """SELECT id::text,group_id::text, document_id::text, creation_date 
-    FROM shared_group_document WHERE group_id=%s """
+            self.db.add(new_group)
+            self.db.commit()
+            self.db.refresh(new_group)
+            self.db.close()
+            group.id = str(new_group.id)
+            group.creation_date = new_group.creation_date.strftime("%d.%m.%Y")
+            return group
+        except SQLAlchemyError as e:
+            self.db.rollback()
+            print(f"Database error occurred: {e}")
+            raise
+        finally:
+            self.db.close()
 
-    DELETE_ALL_QUERY = """DELETE FROM shared_group_document"""
+    def read(self, id) -> SharedGroupDocumentCreate:
+        stmt = select(SharedGroupDocument).where(SharedGroupDocument.id == id)
+        document: SharedGroupDocument = self.db.execute(stmt).scalars().first()
 
-    def create(self, group):
-        conn = self.build_connection()
-        cursor = conn.cursor()
-        cursor.execute(self.INSERT_GROUP_QUERY,
-                       (group.group_id, group.document_id, group.creation_date))
+        return self.map_to_share_group_document(document)
 
-        generated_id = cursor.fetchone()[0]  # Fetch the first column of the first row
-        group.id = str(generated_id)
-        conn.commit()
-        conn.close()
-        return group
+    def delete(self, group_id:int):
+        stmt = delete(SharedGroupDocument).where(SharedGroupDocument.id == group_id)
+        affected_rows = self.db.execute(stmt)
+        self.db.commit()
+        return affected_rows.rowcount
 
-    def read(self, group_id):
-        conn = self.build_connection()
-        cursor = conn.cursor()
-        cursor.execute(self.SELECT_GROUP_QUERY, (group_id,))
-        result = cursor.fetchone()
-        conn.close()
-        if result:
-            return SharedGroupDocument(id=result[0], document_id=result[1], group_id=result[2], creation_date=result[3])
-        return None
-
-    def delete(self, group_id):
-        conn = self.build_connection()
-        cursor = conn.cursor()
-        cursor.execute(self.DELETE_GROUP_QUERY, (group_id,))
-        conn.commit()
-        conn.close()
-
-    def list_by_group_id(self, group_id):
-        conn = self.build_connection()
-        cursor = conn.cursor()
-        cursor.execute(self.SELECT_GROUP_BY_GROUP_ID_QUERY, (group_id,))
-        result = cursor.fetchall()
-        conn.close()
+    def list_by_group_id(self, group_id:int) -> List[SharedGroupDocumentCreate]:
+        stmt = select(SharedGroupDocument).where(SharedGroupDocument.group_id == group_id)
+        documents: Sequence[SharedGroupDocument] = self.db.execute(stmt).scalars().all()
 
         # Transform each database row into an instance of the Group model
-        groups = [
-            SharedGroupDocument(id=row[0], document_id=row[2], group_id=row[1], creation_date=row[3])
-            for row in result
+        groups: List[SharedGroupDocumentCreate] = [
+            self.map_to_share_group_document(row)
+            for row in documents
         ]
         return groups
+
+    def map_to_share_group_document(self, document: SharedGroupDocument) -> SharedGroupDocumentCreate:
+        return SharedGroupDocumentCreate(
+            id=str(document.id),
+            group_id=str(document.group_id),
+            document_id=str(document.document_id),
+            creation_date=document.creation_date.strftime("%d.%m.%Y")
+        )

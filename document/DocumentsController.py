@@ -5,7 +5,7 @@ from fastapi import UploadFile, File, APIRouter, Form, Depends, Query, HTTPExcep
 from starlette.responses import StreamingResponse, Response
 
 from ProviderManager import document_manager_provider
-from document.Document import DocumentType
+from document.Document import DocumentType, DocumentCreate
 from document.DocumentManager import DocumentManager
 
 router_file = APIRouter(
@@ -70,15 +70,14 @@ async def list_documents(
 
 @router_file.get("/{blob_id}/")
 async def download_blob(document_manager: document_manager_dep, blob_id: str, response: Response):
-    document_data = document_manager.get_stream_by_id(blob_id)
+    document_data: DocumentCreate = document_manager.get_stream_by_id(int(blob_id))
 
     if document_data:
         # Set headers for the response
         response.headers["Content-Disposition"] = f"attachment; filename={document_data.name}"
         response.headers["Content-Type"] = "application/octet-stream"
         response.headers["X-Perimeter"] = document_data.perimeter
-        response.headers["X-Created-On"] = document_data.created_on.strftime(
-            "%Y-%m-%d %H:%M:%S") if document_data.created_on else ""
+        response.headers["X-Created-On"] = document_data.created_on if document_data.created_on else ""
 
         def stream_generator():
             yield document_data.document

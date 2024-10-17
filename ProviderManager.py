@@ -1,27 +1,42 @@
 from fastapi import Depends
 from requests import Session
 
-from DependencyManager import \
-    UserDAOProvider, SharedGroupRepositoryDAOProvider, SharedGroupUserRepositoryDAOProvider, \
-    SharedGroupDocumentRepositoryDAOProvider, EmbeddingRepositoryProvider, DocumentsEmbeddingsDAOProvider
-from assistants.ToolManager import ToolManager
 from assistants.AssistantDocumentRepository import AssistantDocumentRepository
 from assistants.AssistantsManager import AssistantManager
 from assistants.AssistantsRepository import AssistantsRepository
+from assistants.ToolManager import ToolManager
 from config import get_db
 from conversation.ConversationRepository import ConversationRepository
 from document.DocumentCategoryRepository import DocumentCategoryRepository
 from document.DocumentManager import DocumentManager
 from document.DocumentsRepository import DocumentsRepository
+from embeddings.DocumentsEmbeddingsRepository import DocumentsEmbeddingsRepository
+from embeddings.EmbeddingRepository import EmbeddingRepository
 from message.MessageRepository import MessageRepository
+from rights.UserRepository import UserRepository
+from sharing.SharedGroupDocumentRepository import SharedGroupDocumentRepository
+from sharing.SharedGroupRepository import SharedGroupRepository
+from sharing.SharedGroupUserRepository import SharedGroupUserRepository
 
-document_embeddings_dao_provider = DocumentsEmbeddingsDAOProvider()
 
-user_dao_provider = UserDAOProvider()
-shared_group_dao_provider = SharedGroupRepositoryDAOProvider()
-shared_group_user_dao_provider = SharedGroupUserRepositoryDAOProvider()
-share_group_document_dao_provider = SharedGroupDocumentRepositoryDAOProvider()
-embeddings_dao_provider = EmbeddingRepositoryProvider()
+def user_dao_provider(session: Session = Depends(get_db)) -> UserRepository:
+    return UserRepository(session)
+
+
+def embeddings_dao_provider() -> EmbeddingRepository:
+    return EmbeddingRepository()
+
+
+def shared_group_user_dao_provider(session: Session = Depends(get_db)) -> SharedGroupUserRepository:
+    return SharedGroupUserRepository(session)
+
+
+def shared_group_dao_provider(session: Session = Depends(get_db)) -> SharedGroupRepository:
+    return SharedGroupRepository(session)
+
+
+def share_group_document_dao_provider(session: Session = Depends(get_db)) -> SharedGroupDocumentRepository:
+    return SharedGroupDocumentRepository(session)
 
 
 def category_dao_provider(session: Session = Depends(get_db)) -> DocumentCategoryRepository:
@@ -41,9 +56,9 @@ def document_dao_provider(session: Session = Depends(get_db)) -> DocumentsReposi
 
 
 def document_manager_provider(session: Session = Depends(get_db)) -> DocumentManager:
-    return DocumentManager(document_embeddings_dao_provider.get_dependency(),
+    return DocumentManager(DocumentsEmbeddingsRepository(session),
                            DocumentsRepository(session),
-                           embeddings_dao_provider.get_dependency())
+                           EmbeddingRepository())
 
 
 def assistant_document_dao_provider(session: Session = Depends(get_db)) -> AssistantDocumentRepository:

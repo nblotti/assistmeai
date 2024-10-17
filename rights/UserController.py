@@ -1,6 +1,5 @@
 import base64
 import io
-import json
 import os
 import random
 from typing import Annotated, Optional, List
@@ -11,12 +10,12 @@ import qrcode
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi import HTTPException
 from ldap3 import Server, Connection, ALL, SUBTREE, MODIFY_REPLACE
-from starlette.responses import Response, StreamingResponse
+from starlette.responses import StreamingResponse
 
-from CustomEncoder import CustomEncoder
 from ProviderManager import user_dao_provider, category_dao_provider
 from document.DocumentCategory import DocumentCategoryCreate, DocumentCategoryByGroupCreate
 from document.DocumentCategoryRepository import DocumentCategoryRepository
+from rights.User import UserGroupCreate
 from rights.UserRepository import UserRepository
 
 router_user = APIRouter(
@@ -25,7 +24,7 @@ router_user = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-user_repository_dep = Annotated[UserRepository, Depends(user_dao_provider.get_dependency)]
+user_repository_dep = Annotated[UserRepository, Depends(user_dao_provider)]
 category_repository_dep = Annotated[DocumentCategoryRepository, Depends(category_dao_provider)]
 
 
@@ -149,37 +148,33 @@ async def get_all_users():
 
 @router_user.delete("/{user_id}/")
 def delete(user_repository: user_repository_dep, user_id: str):
-    user_repository.delete_by_id(user_id)
-    return Response(status_code=200)
-
-
-@router_user.delete("/")
-async def delete_all(user_repository: user_repository_dep):
-    user_repository.delete_all()
-    return Response(status_code=200)
+    return user_repository.delete_by_id(int(user_id))
 
 
 @router_user.put("/categories/")
 async def save(user_repository: user_repository_dep, category_repository: category_repository_dep,
-               new_category: DocumentCategoryCreate):
+               new_category: DocumentCategoryCreate) -> UserGroupCreate:
     category = category_repository.save(new_category)
-    if not category:
-        return Response(status_code=404)
 
-    return json.loads(json.dumps(user_repository.save(new_category["user_id"],
-                                                      category[0]), cls=CustomEncoder))
+    user = UserGroupCreate(
+        category_id=category.id,
+        group_id=new_category.user_id
+
+    )
+    return user_repository.save(user)
 
 
 @router_user.get("/categories")
 async def get_all_categories_for_ids(user_repository: user_repository_dep, category_repository: category_repository_dep,
-                                     user_ids: Optional[List[int]] = Query(None)):
+                                     user_ids: Optional[List[int]] = Query(None)) -> List[
+    DocumentCategoryByGroupCreate]:
     results = []
     for cur_id in user_ids:
         results.append(str(cur_id))
-    category_ids = user_repository.list_by_group(results)
+    categories: List[UserGroupCreate] = user_repository.list_by_group(results)
 
-    category_ids = [result[2] for result in category_ids]
-    categories = category_repository.list_by_group_ids(category_ids)
+    category_ids = [category.category_id for category in categories]
+    categories: List[DocumentCategoryByGroupCreate] = category_repository.list_by_group_ids(category_ids)
     return categories
 
 

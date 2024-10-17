@@ -125,7 +125,7 @@ def summarize(assistant_id: str, query: str) -> str:
         return "Error: No repositories found."
 
     assistant_document_manager = AssistantDocumentRepository(sessions[0])
-    document_manager = DocumentManager(DocumentsRepository(), EmbeddingRepository())
+    document_manager = DocumentManager(DocumentsRepository(sessions[0]), EmbeddingRepository())
     logging.debug("Assistant id: %s", assistant_id)
     assistants_document = assistant_document_manager.list_by_assistant_id(assistant_id)
 

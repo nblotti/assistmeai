@@ -14,7 +14,6 @@ class EmbeddingRepository:
         )
 
     def create_embeddings_for_pdf(self, blob_id, perimeter, embeddings_file, file_name):
-
         docs = self.create_embeddings(embeddings_file)
         for doc in docs:
             doc.metadata = {
@@ -33,7 +32,3 @@ class EmbeddingRepository:
     def create_embeddings(self, embeddings_file):
         loader = PyPDFLoader(embeddings_file)
         return loader.load_and_split(self.text_splitter)
-
-    def delete_all_embeddings(self):
-        vector_store.delete_collection()
-        vector_store.drop_tables()

@@ -87,7 +87,7 @@ class DocumentManager:
     def get_by_id(self, blob_id: str, ) -> DocumentCreate:
         return self.document_repository.get_by_id(blob_id)
 
-    def get_stream_by_id(self, blob_id: str) -> DocumentCreate:
+    def get_stream_by_id(self, blob_id: int) -> DocumentCreate:
         return self.document_repository.get_document_by_id(blob_id)
 
     def delete_embeddings_by_id(self, blob_id):

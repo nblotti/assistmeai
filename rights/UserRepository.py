@@ -1,102 +1,76 @@
-import os
-from typing import List, Tuple, Any
+from typing import List, Sequence
 
-from psycopg2 import connect
+from sqlalchemy import select, delete
+from sqlalchemy.exc import SQLAlchemyError
+
+from BaseAlchemyRepository import BaseAlchemyRepository
+from rights.User import UserGroup, UserGroupCreate
 
 
-class UserRepository:
-    INSERT_GROUP_QUERY = """ INSERT INTO user_groups ( group_id, category_id)  VALUES ( %s, %s) RETURNING id;"""
+class UserRepository(BaseAlchemyRepository):
 
-    SELECT_GROUP_QUERY = """SELECT id,group_id, category_id FROM user_groups WHERE id=%s """
+    def save(self, group: UserGroupCreate) -> UserGroupCreate:
 
-    LIST_GROUP_QUERY = """SELECT id, group_id, category_id FROM user_groups"""
+        try:
+            new_group = UserGroup(
 
-    LIST_CATEGORY_FOR_GROUP_QUERY = "SELECT * FROM user_groups WHERE group_id IN ({})"
-
-    DELETE_GROUP_QUERY = """DELETE FROM user_groups WHERE id = %s"""
-
-    DELETE_ALL_QUERY = """DELETE FROM user_groups"""
-
-    db_name: str
-    db_host: str
-    db_port: str
-    db_user: str
-    db_password: str
-
-    def __init__(self, ):
-        self.db_name = os.getenv("DB_NAME")
-        self.db_host = os.getenv("DB_HOST")
-        self.db_port = os.getenv("DB_PORT")
-        self.db_user = os.getenv("DB_USER")
-        self.db_password = os.getenv("DB_PASSWORD")
-
-    # Function to store blob data in SQLite
-    def save(self, group_id, category_id) -> str:
-        conn = self.build_connection()
-        cursor = conn.cursor()
-        cursor.execute(self.INSERT_GROUP_QUERY,
-                       (group_id, category_id))
-        generated_id = cursor.fetchone()[0]  # Fetch the first column of the first row
-
-        conn.commit()
-        conn.close()
-
-        return str(generated_id)
+                group_id=group.group_id,
+                category_id=int(group.category_id)
+            )
+            self.db.add(new_group)
+            self.db.commit()
+            self.db.refresh(new_group)
+            self.db.close()
+            group.id = str(new_group.id)
+            return group
+        except SQLAlchemyError as e:
+            self.db.rollback()
+            print(f"Database error occurred: {e}")
+            raise
+        finally:
+            self.db.close()
 
     # Function to retrieve blob data from SQLite
-    def get_by_id(self, id):
-        conn = self.build_connection()
-        cursor = conn.cursor()
-        cursor.execute(self.SELECT_GROUP_QUERY, (id,))
-        result = cursor.fetchone()
-        conn.close()
-        return result if result else None
+    def get_by_id(self, group_id: int) -> UserGroupCreate:
+        stmt = select(UserGroup).where(UserGroup.id == group_id)
+        group: UserGroup = self.db.execute(stmt).scalars().first()
 
-    def list(self) -> list[tuple[Any, ...]]:
+        return self.map_to_user_group(group)
+
+    def list(self) -> list[UserGroupCreate]:
+
+        stmt = select(UserGroup)
+        new_groups: Sequence[UserGroup] = self.db.execute(stmt).scalars().all()
+
+        # Transform each database row into an instance of the Group model
+        groups: List[UserGroupCreate] = [
+            self.map_to_user_group(row)
+            for row in new_groups
+        ]
+        return groups
+
+    def list_by_group(self, group_ids) -> List[UserGroupCreate]:
         """List all documents"""
-        conn = self.build_connection()
-        cursor = conn.cursor()
-        cursor.execute(self.LIST_GROUP_QUERY)
-        result = cursor.fetchall()
-        conn.close()
-        return result
 
-    def list_by_group(self, group_ids) -> List[tuple[Any, ...]]:
-        """List all documents"""
-        conn = self.build_connection()
-        cursor = conn.cursor()
-        # Construct placeholders for each group_id
-        placeholders = ','.join(['%s'] * len(group_ids))
-        # Construct the SQL query with the correct placeholders
-        query = self.LIST_CATEGORY_FOR_GROUP_QUERY.format(placeholders)
+        stmt = select(UserGroup).where(UserGroup.group_id.in_(group_ids))
+        new_groups: Sequence[UserGroup] = self.db.execute(stmt).scalars().all()
 
-        # Execute the query with the list of group_ids as parameters
-        cursor.execute(query, tuple(group_ids))
+        # Transform each database row into an instance of the Group model
+        groups: List[UserGroupCreate] = [
+            self.map_to_user_group(row)
+            for row in new_groups
+        ]
+        return groups
 
-        result = cursor.fetchall()
-        conn.close()
-        return result
+    def delete_by_id(self, group_id: int):
+        stmt = delete(UserGroup).where(UserGroup.id == group_id)
+        affected_rows = self.db.execute(stmt)
+        self.db.commit()
+        return affected_rows.rowcount
 
-    def delete_by_id(self, blob_ids: str):
-        conn = self.build_connection()
-        cursor = conn.cursor()
-        cursor.execute(self.DELETE_GROUP_QUERY, (blob_ids,))
-        conn.commit()
-        conn.close()
-
-    def delete_all(self):
-        conn = self.build_connection()
-        cursor = conn.cursor()
-        cursor.execute(self.DELETE_ALL_QUERY)
-        conn.commit()
-        conn.close()
-
-    def build_connection(self):
-        conn = connect(
-            dbname=self.db_name,
-            user=self.db_user,
-            password=self.db_password,
-            host=self.db_host,
-            port=self.db_port
+    def map_to_user_group(self, group: UserGroup) -> UserGroupCreate:
+        return UserGroupCreate(
+            id=str(group.id),
+            group_id=group.group_id,
+            category_idr=str(group.category_id)
         )
-        return conn

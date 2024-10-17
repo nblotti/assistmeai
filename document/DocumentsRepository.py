@@ -1,7 +1,8 @@
-from typing import List
+from typing import Sequence
 
-from sqlalchemy import and_
+from sqlalchemy import and_, select, delete
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from BaseAlchemyRepository import BaseAlchemyRepository
 from document.Document import Document, DocumentType, DocumentCreate
@@ -35,57 +36,55 @@ class DocumentsRepository(BaseAlchemyRepository):
         finally:
             self.db.close()
 
-    def get_by_id(self, blob_id) -> DocumentCreate:
+    def get_by_id(self, blob_id: int) -> DocumentCreate:
 
-        document: Document = self.db.query(Document).filter(Document.id == blob_id).first()
+        stmt = select(Document).where(Document.id == blob_id)
+        document: Document = self.db.execute(stmt).scalars().first()
 
         return self.map_to_document(document)
 
-    def get_document_by_id(self, blob_id) -> DocumentCreate:
-        conn = self.db.connection().connection  # Access the raw DB connection from the session
-        cursor = conn.cursor()  # Direct access to the cursor
+    def get_document_by_id(self, blob_id: int) -> DocumentCreate:
+        with Session(self.db.connection()) as session:
+            try:
+                stmt = select(Document).where(Document.id == blob_id)
+                result = session.execute(stmt).scalars().first()
 
-        try:
-            cursor.execute(self.SELECT_DOCUMENT_STREAM_QUERY, (blob_id,))
-            result = cursor.fetchone()
-            if not result:
-                return None
-            return DocumentCreate(
-                id=str(result[0]),
-                name=result[1],
-                created_on=result[2],
-                perimeter=result[3],
-                document=result[4],
-                owner=result[5],
-                summary_id=result[6],
-                summary_status=result[7],
-                document_type=result[8])
-        except SQLAlchemyError as e:
-            print(f"Database error occurred: {e}")
-        except Exception as e:
-            print(f"An error occurred: {e}")
-        finally:
-            cursor.close()
-            conn.close()
+                if not result:
+                    return None
+
+                return DocumentCreate(
+                    id=str(result.id),
+                    name=result.name,
+                    created_on=result.created_on.strftime("%d.%m.%Y"),
+                    perimeter=result.perimeter,
+                    document=result.document,
+                    owner=result.owner,
+                    summary_id=result.summary_id,
+                    summary_status=result.summary_status,
+                    document_type=result.document_type
+                )
+            except SQLAlchemyError as e:
+                print(f"Database error occurred: {e}")
+            except Exception as e:
+                print(f"An error occurred: {e}")
 
     def list_by_type(self, user: str, document_type: DocumentType):
         """List all documents"""
 
         if document_type == DocumentType.ALL:
-            documents: List[Document] = self.db.query(Document).filter(Document.owner == user).all()
+            stmt = select(Document).where(Document.owner == user)
         else:
-            documents: List[Document] = self.db.query(Document).filter(
-                and_(Document.owner == user,
-                     Document.document_type == document_type)).all()
+            stmt = select(Document).where(and_(Document.owner == user,
+                                               Document.document_type == document_type))
+        documents: Sequence[Document] = self.db.execute(stmt).scalars().all()
 
         return [self.map_to_document(doc) for doc in documents]
 
     def delete_by_id(self, blob_id: int):
-
-        affected_rows = self.db.query(Document).filter(Document.id == blob_id).delete(
-            synchronize_session='auto')
+        stmt = delete(Document).where(Document.id == blob_id)
+        affected_rows = self.db.execute(stmt)
         self.db.commit()
-        return affected_rows
+        return affected_rows.rowcount
 
     def map_to_document(self, document: Document) -> DocumentCreate:
 
