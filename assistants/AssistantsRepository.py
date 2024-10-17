@@ -1,4 +1,6 @@
-from typing import List
+from typing import Sequence
+
+from sqlalchemy import select
 
 from BaseAlchemyRepository import BaseAlchemyRepository
 from assistants.Assistant import Assistant, AssistantCreate
@@ -23,8 +25,8 @@ class AssistantsRepository(BaseAlchemyRepository):
         return assistant
 
     def update(self, assistant: AssistantCreate):
-        assistant_to_update: Assistant = self.db.query(Assistant).filter(
-            Assistant.id == int(assistant.id)).first()
+        stmt = select(Assistant).where(Assistant.id == int(assistant.id))
+        assistant_to_update: Assistant = self.db.execute(stmt).scalars().first()
 
         if assistant_to_update:
             assistant_to_update.name = assistant.name
@@ -37,17 +39,17 @@ class AssistantsRepository(BaseAlchemyRepository):
 
         return self.map_to_assistant(assistant_to_update)
 
-    def get_assistant_by_conversation_id(self, conversation_id:str) -> AssistantCreate:
-        assistant: Assistant = self.db.query(Assistant).filter(
-            Assistant.conversation_id == int(conversation_id)).first()
+    def get_assistant_by_conversation_id(self, conversation_id: str) -> AssistantCreate:
+        stmt = select(Assistant).where(Assistant.conversation_id == int(conversation_id))
+        assistant: Assistant = self.db.execute(stmt).scalars().first()
 
         return self.map_to_assistant(assistant)
 
     def get_all_assistant_by_user_id(self, user_id) -> list[AssistantCreate]:
-        assistant: List[Assistant] = self.db.query(Assistant).filter(
-            Assistant.user_id == user_id).all()
+        stmt = select(Assistant).where(Assistant.user_id == user_id)
+        assistants: Sequence[Assistant] = self.db.execute(stmt).scalars().all()
 
-        return [self.map_to_assistant(doc) for doc in assistant]
+        return [self.map_to_assistant(assistant) for assistant in assistants]
 
     def delete_by_assistant_id(self, assistant_id):
         affected_rows = self.db.query(Assistant).filter(Assistant.id == int(assistant_id)).delete(
@@ -55,11 +57,7 @@ class AssistantsRepository(BaseAlchemyRepository):
         self.db.commit()
         return affected_rows
 
-    def map_to_assistant(self, db_assistant) -> AssistantCreate:
-
-        if not db_assistant:
-            return None
-
+    def map_to_assistant(self, db_assistant: Assistant) -> AssistantCreate:
         assistant = AssistantCreate(
             id=str(db_assistant.id),
             userid=str(db_assistant.user_id),

@@ -13,11 +13,12 @@ from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
 import config
+from assistants.AssistantDocumentRepository import AssistantDocumentRepository
 from document.Document import Document
 from document.DocumentManager import DocumentManager
-from assistants.AssistantDocumentRepository import AssistantDocumentRepository
 from document.DocumentsRepository import DocumentsRepository
 from embeddings.CustomAzurePGVectorRetriever import CustomAzurePGVectorRetriever
+from embeddings.DocumentsEmbeddingsRepository import DocumentsEmbeddingsRepository
 from embeddings.EmbeddingRepository import EmbeddingRepository
 from embeddings.EmbeddingsTools import QueryType
 
@@ -125,7 +126,8 @@ def summarize(assistant_id: str, query: str) -> str:
         return "Error: No repositories found."
 
     assistant_document_manager = AssistantDocumentRepository(sessions[0])
-    document_manager = DocumentManager(DocumentsRepository(sessions[0]), EmbeddingRepository())
+    document_manager = DocumentManager(DocumentsEmbeddingsRepository(sessions[0]), DocumentsRepository(sessions[0]),
+                                       EmbeddingRepository())
     logging.debug("Assistant id: %s", assistant_id)
     assistants_document = assistant_document_manager.list_by_assistant_id(assistant_id)
 

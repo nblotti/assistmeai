@@ -1,6 +1,6 @@
-from typing import List
+from typing import List, Tuple, Sequence, Optional
 
-from sqlalchemy import and_
+from sqlalchemy import and_, select, delete
 
 from BaseAlchemyRepository import BaseAlchemyRepository
 from assistants.Assistant import Assistant
@@ -27,15 +27,18 @@ class ConversationRepository(BaseAlchemyRepository):
 
     def get_conversation_by_id(self, conversation_id: int) -> ConversationCreate:
 
-        results = self.db.query(Conversation, Document).join(Document, Conversation.document_id == Document.id,
-                                                             isouter=True).filter(
-            Conversation.id == conversation_id).first()
+        stmt = select(Conversation, Document).join(Document, Conversation.document_id == Document.id,
+                                                   isouter=True).where(Conversation.id == conversation_id)
 
-        if len(results) > 2:
-            raise Exception("Too many conversation for this ID !")
+        result: Optional[Tuple[Conversation, Document]] = self.db.execute(stmt).first()
 
-        conversation = results[0]
-        document = results[1]
+        conversation_tuple: Tuple[Conversation, Document] = result
+
+        if conversation_tuple is None:
+            raise Exception("Error selecting conversation !")
+
+        conversation: Conversation = conversation_tuple[0]
+        document: Document = conversation_tuple[1]
         document_name = document.name if document else ""
         new_conversation = self.map_to_conversation(conversation, document_name)
 
@@ -43,41 +46,57 @@ class ConversationRepository(BaseAlchemyRepository):
 
     # Function to get all messages  by conversation_id data from SQLite
     def get_conversation_by_perimeter(self, perimeter) -> List[ConversationCreate]:
-        results = (self.db.query(Conversation, Document, Assistant).join(Document,
-                                                                         Conversation.document_id == Document.id,
-                                                                         isouter=True)
-                   .join(Assistant,
-                         Assistant.conversation_id == Conversation.id,
-                         isouter=True)
-                   .filter(Conversation.perimeter == perimeter).order_by(Conversation.id).all())
+
+        stmt = (select(Conversation, Document, Assistant).join(Document,
+                                                               Conversation.document_id == Document.id,
+                                                               isouter=True)
+                .join(Assistant,
+                      Assistant.conversation_id == Conversation.id,
+                      isouter=True).where(Conversation.perimeter == perimeter))
+        results: Sequence[Tuple[Conversation, Document, Assistant]] = [
+            (row.Conversation, row.Document, row.Assistant) for row in self.db.execute(stmt).all()
+        ]
 
         conversations = []
-        for conversation, document, assistant in results:
+        for row in results:
+
+            conversation: Conversation = row[0]
+            document: Document = row[1]
+            assistant: Assistant = row[2]
+
             if assistant is not None:
                 continue
+
             document_name = document.name if document else ""
 
             new_conversation = self.map_to_conversation(conversation, document_name)
             conversations.append(new_conversation)
-            # map conversation create
+        # map conversation create
 
         return conversations
 
     def delete(self, conversation_id: int):
-        affected_rows = self.db.query(Conversation).filter(Conversation.id == conversation_id).delete(
-            synchronize_session='auto')
+        stmt = delete(Conversation).where(Conversation.id == conversation_id)
+        affected_rows = self.db.execute(stmt)
         self.db.commit()
-        return affected_rows
+        return affected_rows.rowcount
 
     def get_conversation_by_document_id(self, document_id: int, user_id: str):
-        results = self.db.query(Conversation, Document).join(Document, Conversation.document_id == Document.id,
-                                                             isouter=True).filter(
+        stmt = select(Conversation, Document).join(Document, Conversation.document_id == Document.id,
+                                                   isouter=True).where(
             and_(
                 Conversation.perimeter == user_id,
-                Conversation.document_id == document_id)).all()
+                Conversation.document_id == document_id)
+        )
+
+        results: Sequence[Tuple[Conversation, Document]] = [
+            (row.Conversation, row.Document) for row in self.db.execute(stmt).all()
+        ]
 
         conversations = []
-        for conversation, document in results:
+        for row in results:
+            conversation: Conversation = row[0]
+            document: Document = row[1]
             document_name = document.name if document else ""
             new_conversation = self.map_to_conversation(conversation, document_name)
             conversations.append(new_conversation)
