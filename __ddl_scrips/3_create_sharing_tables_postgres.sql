@@ -41,10 +41,15 @@ CREATE OR REPLACE FUNCTION delete_related_shared_document_entries()
     RETURNS TRIGGER AS
 $$
 BEGIN
-    -- Delete rows from langchain_pg_embedding where cmetadata->>'blob_id' matches the deleted blob_id
+
     DELETE
     FROM shared_group_document
     WHERE group_id = OLD.id;
+
+    DELETE
+    FROM assistants_document
+    WHERE shared_group_id = OLD.group_id and
+          document_id = OLD.document_id;
 
     -- Return the OLD row (standard for AFTER DELETE triggers)
     RETURN OLD;
@@ -56,3 +61,26 @@ CREATE TRIGGER after_shared_document_delete_trigger
     ON shared_group_document
     FOR EACH ROW
 EXECUTE FUNCTION delete_related_shared_document_entries();
+
+
+
+CREATE OR REPLACE FUNCTION delete_related_shared_user_entries()
+    RETURNS TRIGGER AS
+$$
+BEGIN
+    DELETE
+    FROM assistants_document where
+
+
+    -- Return the OLD row (standard for AFTER DELETE triggers)
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER after_shared_user_delete_trigger
+    AFTER DELETE
+    ON shared_group_users
+    FOR EACH ROW
+EXECUTE FUNCTION delete_related_shared_user_entries();
+
+

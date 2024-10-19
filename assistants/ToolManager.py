@@ -129,7 +129,7 @@ def summarize(assistant_id: str, query: str) -> str:
     document_manager = DocumentManager(DocumentsEmbeddingsRepository(sessions[0]), DocumentsRepository(sessions[0]),
                                        EmbeddingRepository())
     logging.debug("Assistant id: %s", assistant_id)
-    assistants_document = assistant_document_manager.list_by_assistant_id(assistant_id)
+    assistants_document = assistant_document_manager.list_by_assistant_id(int(assistant_id))
 
     ids = [num.document_id for num in assistants_document]
 

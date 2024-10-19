@@ -76,12 +76,13 @@ def unshare_file(group: SharedGroupCreate,
         with open(temp_file, "wb") as file_w:
             file_w.write(content)
 
-        new_perimeter = old_perimeter.replace(group.id, "")
+        new_perimeter = old_perimeter.replace("/" + group.id + "/", "")
 
         document_manager.create_embeddings_for_pdf(doc.document_id, new_perimeter, temp_file, name)
 
         if os.path.exists(temp_file):
             os.remove(temp_file)
+
 
 @router_group.delete("/{group_id}/")
 def delete_group(group_id: int, group_repository: shared_group_repository_dep,

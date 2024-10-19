@@ -7,7 +7,7 @@ from starlette.responses import JSONResponse
 
 from ProviderManager import assistant_document_dao_provider
 from assistants.AssistantDocumentRepository import AssistantDocumentRepository
-from assistants.AssistantsDocument import AssistantsDocumentCreate, AssistantsDocumentList
+from assistants.AssistantsDocument import AssistantsDocumentCreate, AssistantsDocumentList, AssistantDocumentType
 
 # Initialize APIRouter
 router_assistant_document = APIRouter(
@@ -29,7 +29,8 @@ def create_group(assistants_document: AssistantsDocumentCreate,
 
 
 @router_assistant_document.get("/assistant/{assistant_id}/", response_model=List[AssistantsDocumentList])
-def list_group_by_owner(assistant_id: str, assistant_document_repository: assistant_document_repository_dep):
+def list_group_by_owner(assistant_id: int,
+                        assistant_document_repository: assistant_document_repository_dep):
     return assistant_document_repository.list_by_assistant_id(assistant_id)
 
 

@@ -134,6 +134,10 @@ BEGIN
     FROM langchain_pg_embedding
     WHERE cmetadata ->> 'blob_id' = OLD.id::text;
 
+    DELETE
+    FROM shared_group_document
+    WHERE document_id = OLD.id;
+
     -- Return the OLD row (standard for AFTER DELETE triggers)
     RETURN OLD;
 END;

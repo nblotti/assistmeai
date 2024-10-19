@@ -60,7 +60,7 @@ class BearerTokenMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         authorization: Optional[str] = request.headers.get('Authorization')
-        logging.error("header list: %s", request.headers.keys())
+        #logging.error("header list: %s", request.headers.keys())
         if authorization and authorization.startswith("Bearer "):
 
             token = authorization.split("Bearer ")[1]
@@ -76,7 +76,7 @@ class BearerTokenMiddleware(BaseHTTPMiddleware):
             jwt_secret_key = os.getenv("jwt_secret_key")
             jwt_algorithm = os.getenv("jwt_algorithm")
             decoded_payload = jwt.decode(jwt=token, key=jwt_secret_key, algorithms=[jwt_algorithm])
-            logging.info("JWT token is valid : decoded payload: %s", decoded_payload)
+            #logging.info("JWT token is valid : decoded payload: %s", decoded_payload)
             return True
         except ExpiredSignatureError:
             logging.error("JWT Token has expired")

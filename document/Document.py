@@ -1,10 +1,10 @@
 import enum
-from datetime import date, datetime
+from datetime import datetime
 from typing import Optional
 
 import pytz
 from pydantic import BaseModel
-from sqlalchemy import Column, Integer, String, Enum, LargeBinary, DateTime, Date
+from sqlalchemy import Column, Integer, String, Enum, LargeBinary, Date
 from sqlalchemy.orm import declarative_base, deferred
 
 
@@ -49,6 +49,13 @@ class DocumentCreate(BaseModel):
     summary_id: Optional[int] = None
     summary_status: Optional[Jobstatus] = Jobstatus.NONE
     document_type: Optional[DocumentType] = DocumentType.DOCUMENT
+
+    class Config:
+        use_enum_values = True  # This will use enum values when serializing/deserializing
+
+
+class SharedDocumentCreate(DocumentCreate):
+    shared_group_id: str = None
 
     class Config:
         use_enum_values = True  # This will use enum values when serializing/deserializing

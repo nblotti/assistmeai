@@ -3,12 +3,12 @@ from langchain_core.messages import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableWithMessageHistory
 
-from assistants.ToolManager import ToolManager, ToolName
 from assistants import AssistantsRepository
 from assistants.Assistant import Assistant
+from assistants.ToolManager import ToolManager, ToolName
 from chat.azure_openai import chat_gpt_4o, chat_gpt_4, chat_gpt_4o_mini, chat_gpt_35
-from message.SqlMessageHistory import build_agent_memory
 from message import MessageRepository
+from message.SqlMessageHistory import build_agent_memory
 
 
 class AssistantManager:
@@ -105,15 +105,27 @@ class AssistantManager:
                 [
                     (
                         "system",
-                        "Make sure to use the summarize tool to search the user's library and summarize relevant "
-                        "documents to respond and make sure to you use the tool when you can !\n\n {}.\n\n The Assistant id is {}.\n\n"
-                        "If you don't know, do not invent, just say it.".format(description, id)
+                        """
+                        Access and utilize the documents stored in the user's library for any information or data you 
+                        need.
+                        Employ the summarization tool to search the user’s library. Extract and condense information 
+                        from relevant documents to craft your responses. Ensure your responses are well-informed by 
+                        these documents. Use the following template for structuring your responses:
+                        - Respond by first summarizing the necessary information from the user’s library.
+                        - Integrate {description} into your response where specific context or detail is required.
+                        - Conclude with the statement 'If further details are needed, please specify, as I strive to 
+                        provide the most accurate information available. 
+                        \n
+                        The Assistant ID for this session is {id}.'
+                        If unsure about any details, explicitly state that the information is not available in the 
+                        documents within the library instead of making assumptions. 
+                        """
 
                     ),
                     ("placeholder", "{messages}"),
                     ("placeholder", "{agent_scratchpad}"),
                 ]
-            )
+            ).partial(description=description, id=id)
             full_tools = self.tool_manager.get_tools([ToolName.SUMMARIZE, ToolName.WEB_SEARCH])
             agent = create_openai_tools_agent(llm=local_chat, tools=full_tools, prompt=prompt)
             agent_executor = AgentExecutor(agent=agent, tools=full_tools, verbose=True)
@@ -141,14 +153,18 @@ class AssistantManager:
                 [
                     (
                         "system",
-                        "Make sure to you use the tool when you can !\n\n {}.\n\n The Assistant id is {}.\n\n"
-                        "If you don't know, do not invent, just say it.".format(description, id)
+                        """Make sure to you use the tools !\n\n 
+                        {description}.\n\n 
+                        The Assistant id is :\n\n 
+                        {id}.\n\n
+                        If you don't know, do not invent, just say it.
+                        """
 
                     ),
                     ("placeholder", "{messages}"),
                     ("placeholder", "{agent_scratchpad}"),
                 ]
-            )
+            ).partial(description=description, id=id)
             no_doc_tools = self.tool_manager.get_tools([ToolName.GET_DATE, ToolName.WEB_SEARCH])
             agent = create_openai_tools_agent(llm=local_chat, tools=no_doc_tools, prompt=prompt)
             agent_executor = AgentExecutor(agent=agent, tools=no_doc_tools, verbose=True)

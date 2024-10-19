@@ -28,7 +28,7 @@ class CustomAzurePGVectorRetriever(BaseRetriever):
         words = input_string.split()
 
         # Create a list of dictionaries based on the required format
-        query_array = [{'perimeter': {"$like": f"%{word}%"}} for word in words]
+        query_array = [{'perimeter': {"$like": f"%/{word}/%"}} for word in words]
 
         return query_array
 

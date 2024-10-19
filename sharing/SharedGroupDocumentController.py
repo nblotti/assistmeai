@@ -49,9 +49,9 @@ def share_file(group: SharedGroupDocumentCreate,
     document_manager.delete_embeddings_by_id(group.document_id)
 
     if expand_perimeter:
-        new_perimeter = f"{group.group_id}  {old_perimeter}"
+        new_perimeter = f"/{group.group_id}/  {old_perimeter}"
     else:
-        new_perimeter = old_perimeter.replace(group.group_id, "")
+        new_perimeter = old_perimeter.replace("/"+group.group_id+"/", "")
 
     document_manager.create_embeddings_for_pdf(group.document_id, new_perimeter, temp_file, name)
 

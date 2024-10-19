@@ -184,7 +184,7 @@ def get_categories(category_repository: category_repository_dep, groups, user) -
     initial_entry = DocumentCategoryByGroupCreate(
         group_id=user,
         category_id=0,
-        category_name="MyDocuments",
+        category_name="My Documents",
         enabled=True)
 
     # Add the initial dictionary at the beginning of the categories list
