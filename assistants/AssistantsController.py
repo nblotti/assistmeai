@@ -9,7 +9,7 @@ from assistants.AssistantCommand import AssistantCommand
 from assistants.AssistantsManager import AssistantManager
 from assistants.VBAAssistantCommand import VBAAssistantCommand
 from assistants.VBAPPTPresentationAssistantCommand import VBAPPTPresentationAssistantCommand
-from conversation.Conversation import Conversation
+from conversation.Conversation import Conversation, ConversationCreate
 from conversation.ConversationRepository import ConversationRepository
 
 router_assistant = APIRouter(
@@ -73,7 +73,7 @@ async def execute_get_command(assistant_manager: assistant_manager_dep, command:
 @router_assistant.post("/")
 async def create(assistant: AssistantCreate, assistant_manager: assistant_manager_dep,
                  conversation_repository: conversation_repository_dep):
-    conversation: Conversation = Conversation(
+    conversation: ConversationCreate = ConversationCreate(
         perimeter=assistant.userid,
         description="Assistant - {}".format(assistant.name),
         pdf_id=0

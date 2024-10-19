@@ -44,8 +44,8 @@ def read_group(group_id: int, group_repository: shared_group_repository_dep):
 
 
 @router_group.get("/group/user/{user_id}/", response_model=List[SharedGroupCreate])
-def list_group_by_user_id(group_id: str, shared_group_repository: shared_group_repository_dep):
-    return shared_group_repository.list_groups_by_user_id(group_id)
+def list_group_by_user_id(user_id: str, shared_group_repository: shared_group_repository_dep):
+    return shared_group_repository.list_groups_by_user_id(user_id)
 
 
 @router_group.put("/", response_model=SharedGroupCreate)

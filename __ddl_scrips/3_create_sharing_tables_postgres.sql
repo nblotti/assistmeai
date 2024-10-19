@@ -3,7 +3,7 @@ CREATE TABLE shared_groups
     id            INT DEFAULT nextval('owner_sequence') PRIMARY KEY,
     name          VARCHAR(255) NOT NULL,
     owner         VARCHAR(255) NOT NULL,
-    creation_date DATE    NOT NULL
+    creation_date DATE         NOT NULL
 );
 
 CREATE INDEX ix_groups_id ON shared_groups (id);
@@ -11,9 +11,9 @@ CREATE INDEX ix_groups_id ON shared_groups (id);
 CREATE TABLE shared_group_users
 (
     id            SERIAL PRIMARY KEY,
-    group_id      integer NOT NULL,
+    group_id      integer      NOT NULL,
     user_id       VARCHAR(255) NOT NULL,
-    creation_date DATE    NOT NULL,
+    creation_date DATE         NOT NULL,
     FOREIGN KEY (group_id) REFERENCES shared_groups (id) ON DELETE CASCADE,
     CONSTRAINT unique_group_user UNIQUE (group_id, user_id)
 );
@@ -48,8 +48,8 @@ BEGIN
 
     DELETE
     FROM assistants_document
-    WHERE shared_group_id = OLD.group_id and
-          document_id = OLD.document_id;
+    WHERE shared_group_id = OLD.group_id
+      and document_id = OLD.document_id;
 
     -- Return the OLD row (standard for AFTER DELETE triggers)
     RETURN OLD;
@@ -68,17 +68,27 @@ CREATE OR REPLACE FUNCTION delete_related_shared_user_entries()
     RETURNS TRIGGER AS
 $$
 BEGIN
-    DELETE
-    FROM assistants_document where
 
+    delete
+    from assistants_document asd
+    where asd.id in (select ad.id
+                     from assistants a,
+                          shared_group_users s,
+                          assistants_document ad
+                     where a.user_id = s.user_id
+                       and ad.assistant_id = a.id
+                       and ad.shared_group_id = s.group_id
+                       and s.id = OLD.id);
 
     -- Return the OLD row (standard for AFTER DELETE triggers)
     RETURN OLD;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER after_shared_user_delete_trigger
-    AFTER DELETE
+DROP TRIGGER IF EXISTS after_shared_user_delete_trigger ON shared_group_users;
+
+CREATE TRIGGER before_shared_user_delete_trigger
+    BEFORE DELETE
     ON shared_group_users
     FOR EACH ROW
 EXECUTE FUNCTION delete_related_shared_user_entries();
