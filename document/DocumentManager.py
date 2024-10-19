@@ -58,7 +58,8 @@ class DocumentManager:
         with open(temp_file, "wb") as file_w:
             file_w.write(contents)
 
-        self.embedding_repository.create_embeddings_for_pdf(document.id, owner, temp_file, file_name_pdf_extension)
+        self.embedding_repository.create_embeddings_for_pdf(document.id, "/" + owner + "/", temp_file,
+                                                            file_name_pdf_extension)
 
         self.delete_temporary_disk_file(temp_file)
 
