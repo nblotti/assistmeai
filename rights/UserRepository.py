@@ -72,5 +72,6 @@ class UserRepository(BaseAlchemyRepository):
         return UserGroupCreate(
             id=str(group.id),
             group_id=group.group_id,
-            category_idr=str(group.category_id)
+            category_idr=str(group.category_id),
+            is_admin=group.is_admin
         )

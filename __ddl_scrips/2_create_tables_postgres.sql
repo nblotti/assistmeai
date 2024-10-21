@@ -112,6 +112,7 @@ CREATE TABLE user_groups
     id          SERIAL PRIMARY KEY, -- SERIAL is equivalent to AUTO_INCREMENT in MySQL
     group_id    TEXT,
     category_id INTEGER,
+    is_admin    bool NOT NULL DEFAULT false,
     UNIQUE (group_id, category_id),
     FOREIGN KEY (category_id) REFERENCES document_category (id) ON DELETE CASCADE
 );

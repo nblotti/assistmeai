@@ -43,6 +43,7 @@ async def do_login(category_repository: category_repository_dep,
 
     # on obtient les groupes LDAP de l'utilisateur
     groups = get_ldap_groups(user)
+    # on obtient les catégories LDAP de l'utilisateur
     categories: List[DocumentCategoryByGroupCreate] = get_categories(category_repository, groups, user)
 
     return {"user": user,

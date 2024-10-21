@@ -23,24 +23,32 @@ document_manager_dep = Annotated[DocumentManager, Depends(document_manager_provi
 
 
 @router_shared_group_document.post("/", response_model=SharedGroupDocumentCreate)
-def create_group(group: SharedGroupDocumentCreate, shared_group_user_repository: shared_group_document_repository_dep,
+def create_group(group: SharedGroupDocumentCreate,
+                 shared_group_document_repository: shared_group_document_repository_dep,
                  document_manager: document_manager_dep):
     logging.debug("Creating group: %s", group)
-    db_group = shared_group_user_repository.create(group)
-    share_file(db_group, document_manager, expand_perimeter=True)
+    db_group = shared_group_document_repository.create(group)
+    share_file(db_group, document_manager, shared_group_document_repository, expand_perimeter=True)
 
     return db_group
 
 
 def share_file(group: SharedGroupDocumentCreate,
                document_manager: document_manager_dep,
+               shared_group_document_repository: SharedGroupDocumentRepository,
                expand_perimeter: bool = True
                ):
     document: DocumentCreate = document_manager.get_stream_by_id(int(group.document_id))
 
+    shared_group_documents: List[SharedGroupDocumentCreate] = shared_group_document_repository.list_by_document_id(
+        int(group.group_id))
+
+    old_perimeter: str = "/" + document.perimeter + "/"
+    for group in shared_group_documents:
+        old_perimeter += " /" + group.group_id + "/"
+
     name = document.name
     content = document.document
-    old_perimeter = document.perimeter
 
     temp_file = "./" + group.document_id + ".document"
     with open(temp_file, "wb") as file_w:
@@ -51,15 +59,12 @@ def share_file(group: SharedGroupDocumentCreate,
     if expand_perimeter:
         new_perimeter = f"/{group.group_id}/  {old_perimeter}"
     else:
-        new_perimeter = old_perimeter.replace("/"+group.group_id+"/", "")
+        new_perimeter = old_perimeter.replace("/" + group.group_id + "/", "")
 
     document_manager.create_embeddings_for_pdf(group.document_id, new_perimeter, temp_file, name)
 
     if os.path.exists(temp_file):
         os.remove(temp_file)
-    
-    
-
 
 
 @router_shared_group_document.get("/{id}/", response_model=SharedGroupDocumentCreate)
@@ -69,11 +74,11 @@ def read_group(id: int, shared_group_user_repository: shared_group_document_repo
 
 
 @router_shared_group_document.delete("/{group_id}/")
-def delete_group(group_id: str, shared_group_user_repository: shared_group_document_repository_dep,
+def delete_group(group_id: str, shared_group_document_repository: shared_group_document_repository_dep,
                  document_manager: document_manager_dep):
     logging.debug("Deleting group with ID: %s", group_id)
-    group: SharedGroupDocumentCreate = shared_group_user_repository.read(int(group_id))
-    result = shared_group_user_repository.delete(int(group_id))
+    group: SharedGroupDocumentCreate = shared_group_document_repository.read(int(group_id))
+    result = shared_group_document_repository.delete(int(group_id))
     share_file(group, document_manager, expand_perimeter=False)
     return result
 

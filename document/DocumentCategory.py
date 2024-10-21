@@ -1,7 +1,7 @@
 from typing import Optional
 
 from pydantic import BaseModel
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Boolean
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
@@ -25,6 +25,7 @@ class DocumentCategoryByGroup(Base):
     group_id = Column(String, nullable=False, primary_key=True)
     category_id = Column(Integer, nullable=False, primary_key=True)
     category_name = Column(String, nullable=False)
+    is_admin = Column(Boolean, nullable=False, default=False)
 
 
 class DocumentCategoryByGroupCreate(BaseModel):
@@ -32,3 +33,4 @@ class DocumentCategoryByGroupCreate(BaseModel):
     category_id: int
     category_name: str
     enabled: Optional[bool] = True
+    is_admin: Optional[bool] = False

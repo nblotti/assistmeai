@@ -53,5 +53,6 @@ class DocumentCategoryRepository(BaseAlchemyRepository):
             group_id=document.group_id,
             category_id=document.category_id,
             category_name=document.category_name,
+            is_admin=document.is_admin,
             enabled=True
         )

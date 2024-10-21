@@ -54,6 +54,17 @@ class SharedGroupDocumentRepository(BaseAlchemyRepository):
         ]
         return groups
 
+    def list_by_document_id(self, document_id:int) -> List[SharedGroupDocumentCreate]:
+        stmt = select(SharedGroupDocument).where(SharedGroupDocument.document_id == document_id)
+        documents: Sequence[SharedGroupDocument] = self.db.execute(stmt).scalars().all()
+
+        # Transform each database row into an instance of the Group model
+        groups: List[SharedGroupDocumentCreate] = [
+            self.map_to_share_group_document(row)
+            for row in documents
+        ]
+        return groups
+
     def map_to_share_group_document(self, document: SharedGroupDocument) -> SharedGroupDocumentCreate:
         return SharedGroupDocumentCreate(
             id=str(document.id),
