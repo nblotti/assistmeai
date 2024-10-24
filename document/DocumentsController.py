@@ -4,9 +4,11 @@ from typing import Annotated, List
 from fastapi import UploadFile, File, APIRouter, Form, Depends, Query, HTTPException
 from starlette.responses import StreamingResponse, Response
 
-from ProviderManager import document_manager_provider, shared_group_user_dao_provider, share_group_document_dao_provider
-from document.Document import DocumentType, DocumentCreate, SharedDocumentCreate
+from ProviderManager import document_manager_provider, shared_group_user_dao_provider, \
+    share_group_document_dao_provider, user_manager_provider
+from document.Document import DocumentType, DocumentCreate, SharedDocumentCreate, CategoryDocumentCreate
 from document.DocumentManager import DocumentManager
+from rights import UserManager
 from sharing.SharedGroupDocument import SharedGroupDocumentCreate
 from sharing.SharedGroupDocumentRepository import SharedGroupDocumentRepository
 from sharing.SharedGroupUser import SharedGroupUserCreate
@@ -19,6 +21,7 @@ router_file = APIRouter(
 )
 
 document_manager_dep = Annotated[DocumentManager, Depends(document_manager_provider)]
+user_manager_dep = Annotated[UserManager, Depends(user_manager_provider)]
 shared_group_user_dep = Annotated[SharedGroupUserRepository, Depends(shared_group_user_dao_provider)]
 share_group_document_dep = Annotated[SharedGroupDocumentRepository, Depends(share_group_document_dao_provider)]
 
@@ -98,6 +101,15 @@ async def list_documents(
         shared_document.shared_group_id = document_group.group_id
         documents.append(shared_document)
     return documents
+
+
+@router_file.get("/category/{user}/{category_id}")
+async def list_documents(
+        user: str,
+        category_id: int,
+        user_manager: user_manager_dep
+) -> List[CategoryDocumentCreate]:
+    return await user_manager.list_documents(user, category_id)
 
 
 @router_file.get("/{blob_id}/")

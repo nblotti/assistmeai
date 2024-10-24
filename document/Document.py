@@ -54,6 +54,14 @@ class DocumentCreate(BaseModel):
         use_enum_values = True  # This will use enum values when serializing/deserializing
 
 
+class CategoryDocumentCreate(DocumentCreate):
+    category_id: str = None
+    category_name: str = None
+
+    class Config:
+        use_enum_values = True  # This will use enum values when serializing/deserializing
+
+
 class SharedDocumentCreate(DocumentCreate):
     shared_group_id: str = None
 

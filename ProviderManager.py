@@ -13,6 +13,7 @@ from document.DocumentsRepository import DocumentsRepository
 from embeddings.DocumentsEmbeddingsRepository import DocumentsEmbeddingsRepository
 from embeddings.EmbeddingRepository import EmbeddingRepository
 from message.MessageRepository import MessageRepository
+from rights.UserManager import UserManager
 from rights.UserRepository import UserRepository
 from sharing.SharedGroupDocumentRepository import SharedGroupDocumentRepository
 from sharing.SharedGroupRepository import SharedGroupRepository
@@ -61,9 +62,15 @@ def document_manager_provider(session: Session = Depends(get_db)) -> DocumentMan
                            EmbeddingRepository())
 
 
+def user_manager_provider(session: Session = Depends(get_db)) -> UserManager:
+    return UserManager(user_dao_provider(session),
+                       category_dao_provider(session),
+                       document_manager_provider(session))
+
+
 def assistant_document_dao_provider(session: Session = Depends(get_db)) -> AssistantDocumentRepository:
     return AssistantDocumentRepository(session)
 
 
 def assistant_manager_provider(session: Session = Depends(get_db)) -> AssistantManager:
-    return AssistantManager(MessageRepository(session), AssistantsRepository(session), ToolManager())
+    return AssistantManager(message_dao_provider(session), AssistantsRepository(session), ToolManager())
