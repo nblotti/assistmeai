@@ -15,7 +15,8 @@ class AssistantsRepository(BaseAlchemyRepository):
             conversation_id=int(assistant.conversation_id),
             description=assistant.description,
             gpt_model_number=assistant.gpt_model_number,
-            use_documents=assistant.use_documents
+            use_documents=assistant.use_documents,
+            favorite=assistant.favorite
 
         )
         self.db.add(new_assistant)
@@ -33,7 +34,7 @@ class AssistantsRepository(BaseAlchemyRepository):
             assistant_to_update.description = assistant.description
             assistant_to_update.gpt_model_number = assistant.gpt_model_number
             assistant_to_update.use_documents = assistant.use_documents
-
+            assistant_to_update.favorite = assistant.favorite
             self.db.commit()
             self.db.refresh(assistant_to_update)
 
@@ -65,7 +66,8 @@ class AssistantsRepository(BaseAlchemyRepository):
             conversation_id=str(db_assistant.conversation_id),
             description=db_assistant.description,
             gpt_model_number=db_assistant.gpt_model_number,
-            use_documents=db_assistant.use_documents
+            use_documents=db_assistant.use_documents,
+            favorite=db_assistant.favorite
         )
 
         return assistant

@@ -17,6 +17,7 @@ class Assistant(Base):
     description = Column(String, nullable=True, default="")
     gpt_model_number = Column(String, nullable=False, default="4o-mini")
     use_documents = Column(Boolean, nullable=False, default=False)
+    favorite = Column(Boolean, nullable=False, default=False)
 
 
 # Define the Python class as a Pydantic model
@@ -28,4 +29,5 @@ class AssistantCreate(BaseModel):
     conversation_id: Optional[str] = ""
     description: Optional[str] = ""
     gpt_model_number: Optional[str] = "4o-mini"
-    use_documents: bool = False
+    use_documents: Optional[bool] = "false"
+    favorite: Optional[bool] = "false"
