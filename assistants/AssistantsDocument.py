@@ -11,6 +11,7 @@ Base = declarative_base()
 class AssistantDocumentType(str, enum.Enum):
     MY_DOCUMENTS = "MY_DOCUMENTS"
     SHARED_DOCUMENTS = "SHARED_DOCUMENTS"
+    CATEGORY_DOCUMENTS = "CATEGORY_DOCUMENTS"
 
 
 class AssistantsDocument(Base):
