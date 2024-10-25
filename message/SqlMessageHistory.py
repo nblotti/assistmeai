@@ -16,7 +16,12 @@ class SqlMessageHistory(BaseChatMessageHistory):
     @property
     def messages(self):
         """ Finds all messages that belong to the given conversation_id """
-        return self.message_repository.get_all_messages_by_conversation_id(self.conversation_id)
+        messages = self.message_repository.get_all_messages_by_conversation_id(self.conversation_id)
+        current_len = len(messages)
+        if current_len >= 10:
+            messages = messages[current_len-10:]
+
+        return messages
 
     def add_message(self, message: BaseMessage):
         """ Creates and stores a new message tied to the given conversation_id  with the provided role and content """
