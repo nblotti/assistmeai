@@ -13,7 +13,6 @@ class JobRepository(BaseAlchemyRepository):
         new_job = Job(
             source=job.source,
             owner=job.owner,
-            status=job.status,
             job_type=job.job_type
 
         )
@@ -29,8 +28,9 @@ class JobRepository(BaseAlchemyRepository):
 
         if job_to_update:
             job_to_update.status = job.status
-            job_to_update.last_update = job.last_update
-            job_to_update.target_document_id = job.target_document_id if job.target_document_id else None,
+            job_to_update.last_update = datetime.now(pytz.utc)
+            # Ensure target_document_id is not a tuple
+            job_to_update.target_document_id = job.target_document_id or None
             self.db.commit()
             self.db.refresh(job_to_update)
 

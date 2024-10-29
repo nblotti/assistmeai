@@ -31,7 +31,7 @@ share_group_document_dep = Annotated[SharedGroupDocumentRepository, Depends(shar
 async def upload_file(
         document_manager: document_manager_dep,
         owner: str = Form(...),
-        document_type: DocumentType = Form(DocumentType.DOCUMENT, alias='type'),
+        document_type: DocumentType = Form(default=DocumentType.DOCUMENT, alias='type'),
         file: UploadFile = File(...)
 ):
     enum_type = FileType.PDF
@@ -62,7 +62,7 @@ def delete(
         blob_id: str):
     rows = document_manager.delete(blob_id)
 
-    return Response(status_code=200)
+    return Response(status_code=200, description="Document deleted successfully")
 
 
 @router_file.get("/user/{user}")
@@ -126,6 +126,7 @@ async def download_blob(document_manager: document_manager_dep, blob_id: str):
             "X-Owner": document_data.owner,
             "X-Created-On": document_data.created_on if document_data.created_on else "",
             "X-File-Name": document_data.name,
+            "X-Document-Type": document_data.document_type,
         }
 
         def stream_generator():

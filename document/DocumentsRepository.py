@@ -19,6 +19,7 @@ class DocumentsRepository(BaseAlchemyRepository):
                 name=document.name,
                 perimeter=document.perimeter,
                 owner=document.owner,
+                document_type=document.document_type,
                 document=document.document  # Saving the binary content
             )
 

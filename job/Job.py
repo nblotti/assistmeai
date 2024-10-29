@@ -46,7 +46,7 @@ class JobBase(BaseModel):
 class JobCreate(JobBase):
     source: str
     owner: str
-    status: Optional[JobStatus] = JobStatus.REQUESTED
+    status: Optional[JobStatus] = JobStatus.IN_PROGRESS
     job_type: Optional[JobType] = JobType.SUMMARY
 
     class Config:
