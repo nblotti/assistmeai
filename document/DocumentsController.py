@@ -123,6 +123,7 @@ async def download_blob(document_manager: document_manager_dep, blob_id: str):
             "Content-Disposition": f"attachment; filename={document_data.name}",
             "Content-Type": "application/octet-stream",
             "X-Perimeter": document_data.perimeter,
+            "X-Owner": document_data.owner,
             "X-Created-On": document_data.created_on if document_data.created_on else "",
             "X-File-Name": document_data.name,
         }

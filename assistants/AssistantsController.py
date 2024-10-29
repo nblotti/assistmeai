@@ -4,12 +4,12 @@ from fastapi import APIRouter, Depends
 from starlette.responses import JSONResponse
 
 from ProviderManager import assistant_manager_provider, conversation_dao_provider
-from assistants.Assistant import Assistant, AssistantCreate
+from assistants.Assistant import AssistantCreate
 from assistants.AssistantCommand import AssistantCommand
 from assistants.AssistantsManager import AssistantManager
 from assistants.VBAAssistantCommand import VBAAssistantCommand
 from assistants.VBAPPTPresentationAssistantCommand import VBAPPTPresentationAssistantCommand
-from conversation.Conversation import Conversation, ConversationCreate
+from conversation.Conversation import ConversationCreate
 from conversation.ConversationRepository import ConversationRepository
 
 router_assistant = APIRouter(

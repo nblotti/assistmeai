@@ -12,6 +12,7 @@ from document.DocumentManager import DocumentManager
 from document.DocumentsRepository import DocumentsRepository
 from embeddings.DocumentsEmbeddingsRepository import DocumentsEmbeddingsRepository
 from embeddings.EmbeddingRepository import EmbeddingRepository
+from job.JobRepository import JobRepository
 from message.MessageRepository import MessageRepository
 from rights.UserManager import UserManager
 from rights.UserRepository import UserRepository
@@ -54,6 +55,10 @@ def message_dao_provider(session: Session = Depends(get_db)) -> MessageRepositor
 
 def document_dao_provider(session: Session = Depends(get_db)) -> DocumentsRepository:
     return DocumentsRepository(session)
+
+
+def job_dao_provider(session: Session = Depends(get_db)) -> JobRepository:
+    return JobRepository(session)
 
 
 def document_manager_provider(session: Session = Depends(get_db)) -> DocumentManager:
