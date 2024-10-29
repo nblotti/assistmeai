@@ -6,7 +6,7 @@ from langchain_core.runnables import RunnableWithMessageHistory
 from assistants import AssistantsRepository
 from assistants.Assistant import Assistant
 from assistants.ToolManager import ToolManager, ToolName
-from chat.azure_openai import chat_gpt_4o, chat_gpt_4, chat_gpt_4o_mini, chat_gpt_35
+from chat.azure_openai import chat_gpt_4o, chat_gpt_4, chat_gpt_4o_mini
 from message import MessageRepository
 from message.SqlMessageHistory import build_agent_memory
 
@@ -81,7 +81,7 @@ class AssistantManager:
 
         return result["output"]
 
-    def execute_command_documents(self, conversation_id: str, command: str, id: str,
+    def execute_command_documents(self, conversation_id: str, command: str, id: int,
                                   description: str,
                                   use_document: bool,
                                   gpt_model_number: str,
@@ -92,10 +92,8 @@ class AssistantManager:
             local_chat = chat_gpt_4
         elif gpt_model_number == "4o":
             local_chat = chat_gpt_4o
-        elif gpt_model_number == "4o-mini":
-            local_chat = chat_gpt_4o_mini
         else:
-            local_chat = chat_gpt_35
+            local_chat = chat_gpt_4o_mini
 
         memory = build_agent_memory(self.message_repository, conversation_id)
 
@@ -125,7 +123,7 @@ class AssistantManager:
                     ("placeholder", "{messages}"),
                     ("placeholder", "{agent_scratchpad}"),
                 ]
-            ).partial(description=description, id=id)
+            ).partial(description=description, id=str(id))
             full_tools = self.tool_manager.get_tools([ToolName.SUMMARIZE, ToolName.WEB_SEARCH])
             agent = create_openai_tools_agent(llm=local_chat, tools=full_tools, prompt=prompt)
             agent_executor = AgentExecutor(agent=agent, tools=full_tools, verbose=True)

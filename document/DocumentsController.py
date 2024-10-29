@@ -2,7 +2,8 @@ from enum import Enum
 from typing import Annotated, List
 
 from fastapi import UploadFile, File, APIRouter, Form, Depends, Query, HTTPException
-from starlette.responses import StreamingResponse, Response
+from fastapi.openapi.models import Response
+from fastapi.responses import StreamingResponse
 
 from ProviderManager import document_manager_provider, shared_group_user_dao_provider, \
     share_group_document_dao_provider, user_manager_provider
@@ -113,21 +114,24 @@ async def list_documents(
 
 
 @router_file.get("/{blob_id}/")
-async def download_blob(document_manager: document_manager_dep, blob_id: str, response: Response):
+async def download_blob(document_manager: document_manager_dep, blob_id: str):
     document_data: DocumentCreate = document_manager.get_stream_by_id(int(blob_id))
 
     if document_data:
         # Set headers for the response
-        response.headers["Content-Disposition"] = f"attachment; filename={document_data.name}"
-        response.headers["Content-Type"] = "application/octet-stream"
-        response.headers["X-Perimeter"] = document_data.perimeter
-        response.headers["X-Created-On"] = document_data.created_on if document_data.created_on else ""
+        headers = {
+            "Content-Disposition": f"attachment; filename={document_data.name}",
+            "Content-Type": "application/octet-stream",
+            "X-Perimeter": document_data.perimeter,
+            "X-Created-On": document_data.created_on if document_data.created_on else "",
+            "X-File-Name": document_data.name,
+        }
 
         def stream_generator():
             yield document_data.document
 
         # Stream the content
-        return StreamingResponse(stream_generator(), media_type="application/object")
+        return StreamingResponse(stream_generator(), media_type="application/octet-stream", headers=headers)
     else:
         raise HTTPException(status_code=404, detail="Blob not found")
 
