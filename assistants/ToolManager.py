@@ -1,5 +1,6 @@
 # ToolManager.py
 import asyncio
+import io
 import logging
 import os
 import time
@@ -11,6 +12,7 @@ import tiktoken
 from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
+from pypdf import PdfReader
 
 import config
 from assistants.AssistantDocumentRepository import AssistantDocumentRepository
@@ -28,6 +30,7 @@ class ToolName(str, Enum):
     GET_DATE = "get_date"
     SUMMARIZE = "summarize"
     POWERPOINT = "powerpoint"
+    TEMPLATE = "template"
 
 
 class Slide(BaseModel):
@@ -43,7 +46,8 @@ class ToolManager:
             ToolName.WEB_SEARCH: web_search,
             ToolName.GET_DATE: get_date,
             ToolName.SUMMARIZE: summarize,
-            ToolName.POWERPOINT: powerpoint
+            ToolName.POWERPOINT: powerpoint,
+            ToolName.TEMPLATE: template
         }
 
     def get_tools(self, tool_names: List[ToolName]) -> List[Callable[..., str]]:
@@ -87,6 +91,7 @@ class CalculatorInput(BaseModel):
     a: list[Slide] = Field(description="The list of slides")
 
 
+
 @tool(args_schema=CalculatorInput, return_direct=True)
 def powerpoint(a) -> []:
     """This tool is used to create a PowerPoint based on a content provided and a query. The footer contains the page number (provide it) on the right"""
@@ -109,6 +114,34 @@ async def async_fetch_and_prepare_sessions():
 
 def fetch_and_prepare_sessions_sync():
     return asyncio.run(async_fetch_and_prepare_sessions())
+
+
+@tool
+def template(document_id) -> []:
+    """This tool is used to load a document content"""
+
+    try:
+        sessions = fetch_and_prepare_sessions_sync()
+    except Exception as e:
+        logging.error(f"Failed to fetch sessions: {e}")
+        return "Error fetching sessions."
+
+    if not sessions:
+        logging.error("No repositories found.")
+        return "Error: No repositories found."
+
+    document_manager = DocumentManager(DocumentsEmbeddingsRepository(sessions[0]), DocumentsRepository(sessions[0]),
+                                       EmbeddingRepository())
+
+    pdf_stream = document_manager.get_stream_by_id(int(document_id))
+
+    pdf_reader = PdfReader(io.BytesIO(pdf_stream.document))
+    text_content = ""
+
+    for page_num in range(len(pdf_reader.pages)):
+        text_content += pdf_reader.pages[page_num].extract_text()
+
+    return text_content
 
 
 @tool

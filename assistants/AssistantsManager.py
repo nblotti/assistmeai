@@ -102,17 +102,15 @@ class AssistantManager:
             prompt = ChatPromptTemplate.from_messages(
                 [
                     (
+                        "system", "{description}"),
+                    (
                         "system",
                         """
                         Access and utilize the documents stored in the user's library for any information or data you 
                         need.
                         Employ the summarization tool to search the user’s library. Extract and condense information 
                         from relevant documents to craft your responses. Ensure your responses are well-informed by 
-                        these documents. Use the following template for structuring your responses:
-                        - Respond by first summarizing the necessary information from the user’s library.
-                        - Integrate {description} into your response where specific context or detail is required.
-                        - Conclude with the statement 'If further details are needed, please specify, as I strive to 
-                        provide the most accurate information available. 
+                        these documents. 
                         \n
                         The Assistant ID for this session is {id}.'
                         If unsure about any details, explicitly state that the information is not available in the 

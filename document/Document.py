@@ -19,6 +19,7 @@ class Jobstatus(str, enum.Enum):
 class DocumentType(str, enum.Enum):
     SUMMARY = "SUMMARY"
     DOCUMENT = "DOCUMENT"
+    TEMPLATE = "TEMPLATE"
     ALL = "ALL"
 
 
