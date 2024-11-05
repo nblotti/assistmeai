@@ -9,7 +9,7 @@ from enum import Enum
 from typing import Callable, Dict, List
 
 import tiktoken
-from langchain_community.tools import DuckDuckGoSearchRun
+from langchain_community.tools import DuckDuckGoSearchRun, DuckDuckGoSearchResults
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 from pypdf import PdfReader
@@ -72,7 +72,9 @@ def web_search(query: str) -> str:
         try:
             out = False
             loop += 1
-            search = DuckDuckGoSearchRun()
+            search = DuckDuckGoSearchResults(output_format="list")
+            for result in search:
+                Document()
             return search.invoke(query)
         except Exception as e:
             time.sleep(3)
