@@ -3,13 +3,14 @@ import subprocess
 import uuid
 from typing import List
 
+from httpx import AsyncClient
 from openai import RateLimitError
-from sqlalchemy.testing.plugin.plugin_base import logging
 
 from document.Document import DocumentType, DocumentCreate, LangChainDocument
 from document.DocumentsRepository import DocumentsRepository
 from embeddings.DocumentsEmbeddingsRepository import DocumentsEmbeddingsRepository
 from embeddings.EmbeddingRepository import EmbeddingRepository
+from job.Job import JobCreate, JobType
 
 
 class DocumentManager:
@@ -67,7 +68,7 @@ class DocumentManager:
             self.embedding_repository.create_embeddings_for_pdf(document.id, "/" + owner + "/", temp_file,
                                                                 file_name_pdf_extension)
         except RateLimitError as e:
-            self.start_async_job(document.id)
+            await self.start_async_job(document.id, owner)
 
         self.delete_temporary_disk_file(temp_file)
 
@@ -78,7 +79,7 @@ class DocumentManager:
     '''
 
     async def create_embeddings_for_documents(self, docs: List[LangChainDocument]):
-        return self.embedding_repository.create_embeddings_for_documents(docs)
+        return await self.embedding_repository.create_embeddings_for_documents(docs)
 
     def delete_temporary_disk_file(self, file_path):
         try:
@@ -105,15 +106,26 @@ class DocumentManager:
     def delete_embeddings_by_id(self, blob_id):
         return self.document_embeddings_repository.delete_embeddings_by_id(blob_id)
 
-    def create_embeddings_for_pdf(self, blob_id, new_perimeter, temp_file, name):
+    async def create_embeddings_for_pdf(self, blob_id, new_perimeter, temp_file, name):
         try:
             return self.embedding_repository.create_embeddings_for_pdf(blob_id, new_perimeter, temp_file, name)
         except RateLimitError as e:
-            self.start_async_job(blob_id)
+            await self.start_async_job(blob_id, new_perimeter)
 
     def get_embeddings_by_ids(self, blob_ids: [str]):
         return self.document_embeddings_repository.get_embeddings_by_ids(blob_ids)
 
-    def start_async_job(self, blob_id: str):
-        print("not implemented yet")
-        pass
+    async def start_async_job(self, blob_id: str, perimeter: str):
+        url = os.environ["LONG_EMBEDDINGS_SCRATCH_URL"]
+
+        job = JobCreate(
+            source=blob_id,
+            owner=perimeter,
+            job_type=JobType.LONG_EMBEDDINGS
+        )
+
+        async with AsyncClient(timeout=30) as client:
+            response = await client.post(url, json=job.model_dump())
+
+        if response.status_code != 200:
+            print(f"Error creating embedding job for long document with id {blob_id}: \n{response.text}")

@@ -21,6 +21,7 @@ class JobStatus(str, enum.Enum):
 class JobType(str, enum.Enum):
     SUMMARY = "SUMMARY"
     SCRAP = "SCRAP"
+    LONG_EMBEDDINGS = "LONG_EMBEDDINGS"
 
 
 class Job(Base):
