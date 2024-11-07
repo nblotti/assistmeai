@@ -41,12 +41,9 @@ class EmbeddingRepository:
                 "page": doc.metadata["page"]
             }
 
-        try:
             vector_store.add_documents(
                 documents=docs,
                 ids=[doc.metadata["id"] for doc in docs])
-        except RateLimitError as e:
-            print(e)
 
     def create_embeddings(self, embeddings_file):
         loader = PyPDFLoader(embeddings_file)

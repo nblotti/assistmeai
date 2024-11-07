@@ -3,7 +3,8 @@ import subprocess
 import uuid
 from typing import List
 
-from langchain_core.documents import Document
+from openai import RateLimitError
+from sqlalchemy.testing.plugin.plugin_base import logging
 
 from document.Document import DocumentType, DocumentCreate, LangChainDocument
 from document.DocumentsRepository import DocumentsRepository
@@ -61,8 +62,12 @@ class DocumentManager:
         with open(temp_file, "wb") as file_w:
             file_w.write(contents)
 
-        self.embedding_repository.create_embeddings_for_pdf(document.id, "/" + owner + "/", temp_file,
-                                                            file_name_pdf_extension)
+        try:
+
+            self.embedding_repository.create_embeddings_for_pdf(document.id, "/" + owner + "/", temp_file,
+                                                                file_name_pdf_extension)
+        except RateLimitError as e:
+            self.start_async_job(document.id)
 
         self.delete_temporary_disk_file(temp_file)
 
@@ -101,7 +106,14 @@ class DocumentManager:
         return self.document_embeddings_repository.delete_embeddings_by_id(blob_id)
 
     def create_embeddings_for_pdf(self, blob_id, new_perimeter, temp_file, name):
-        return self.embedding_repository.create_embeddings_for_pdf(blob_id, new_perimeter, temp_file, name)
+        try:
+            return self.embedding_repository.create_embeddings_for_pdf(blob_id, new_perimeter, temp_file, name)
+        except RateLimitError as e:
+            self.start_async_job(blob_id)
 
     def get_embeddings_by_ids(self, blob_ids: [str]):
         return self.document_embeddings_repository.get_embeddings_by_ids(blob_ids)
+
+    def start_async_job(self, blob_id: str):
+        print("not implemented yet")
+        pass
