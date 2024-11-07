@@ -1,8 +1,11 @@
 import os
 import subprocess
 import uuid
+from typing import List
 
-from document.Document import DocumentType, DocumentCreate
+from langchain_core.documents import Document
+
+from document.Document import DocumentType, DocumentCreate, LangChainDocument
 from document.DocumentsRepository import DocumentsRepository
 from embeddings.DocumentsEmbeddingsRepository import DocumentsEmbeddingsRepository
 from embeddings.EmbeddingRepository import EmbeddingRepository
@@ -68,6 +71,9 @@ class DocumentManager:
     '''
         This method deletes a temporary file on the HD
     '''
+
+    async def create_embeddings_for_documents(self, docs: List[LangChainDocument]):
+        return self.embedding_repository.create_embeddings_for_documents(docs)
 
     def delete_temporary_disk_file(self, file_path):
         try:

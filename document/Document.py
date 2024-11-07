@@ -26,6 +26,11 @@ class DocumentType(str, enum.Enum):
 Base = declarative_base()
 
 
+class LangChainDocument(BaseModel):
+    page_content: str
+    metadata: dict
+
+
 class Document(Base):
     __tablename__ = 'document'
 

@@ -7,7 +7,8 @@ from fastapi.responses import StreamingResponse
 
 from ProviderManager import document_manager_provider, shared_group_user_dao_provider, \
     share_group_document_dao_provider, user_manager_provider
-from document.Document import DocumentType, DocumentCreate, SharedDocumentCreate, CategoryDocumentCreate
+from document.Document import DocumentType, DocumentCreate, SharedDocumentCreate, CategoryDocumentCreate, \
+    LangChainDocument
 from document.DocumentManager import DocumentManager
 from rights import UserManager
 from sharing.SharedGroupDocument import SharedGroupDocumentCreate
@@ -54,6 +55,11 @@ async def upload_file(
     else:
         # Upload file
         return await document_manager.upload_file(owner, file.filename, contents, document_type)
+
+
+@router_file.post("/documents")
+async def create_embeddings_for_documents(document_manager: document_manager_dep, docs: List[LangChainDocument]):
+    return await document_manager.create_embeddings_for_documents(docs)
 
 
 @router_file.delete("/{blob_id}/")
