@@ -79,7 +79,7 @@ class DocumentManager:
     '''
 
     async def create_embeddings_for_documents(self, docs: List[LangChainDocument]):
-        return await self.embedding_repository.create_embeddings_for_documents(docs)
+        return self.embedding_repository.create_embeddings_for_documents(docs)
 
     def delete_temporary_disk_file(self, file_path):
         try:
