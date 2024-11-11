@@ -161,18 +161,21 @@ class AssistantManager:
                     ("placeholder", "{agent_scratchpad}"),
                 ]
             ).partial(description=description, id=id)
-            no_doc_tools = self.tool_manager.get_tools([ToolName.GET_DATE, ToolName.WEB_SEARCH])
+            no_doc_tools = self.tool_manager.get_tools([ToolName.WEB_SEARCH])
             agent = create_openai_tools_agent(llm=local_chat, tools=no_doc_tools, prompt=prompt)
-            agent_executor = AgentExecutor(agent=agent, tools=no_doc_tools, verbose=True)
+
+            agent_executor = AgentExecutor(agent=agent, tools=no_doc_tools,
+                                           return_intermediate_steps=True,
+                                           return_source_documents=True, verbose=True)
 
             if use_memory:
                 conversational_agent_executor = RunnableWithMessageHistory(
                     agent_executor,
                     lambda session_id: memory,
+                    return_source_documents=True,
                     input_messages_key="messages",
                     output_messages_key="output",
                 )
-
                 result = conversational_agent_executor.invoke(
                     {"messages": [HumanMessage(command)]},
                     {"configurable": {"session_id": "unused"}},
@@ -182,7 +185,16 @@ class AssistantManager:
                     {"messages": [HumanMessage(command)]}
                 )
 
-        return result["output"]
+        sources = []
+        for res in result["intermediate_steps"]:
+            if res[0].tool == ToolName.WEB_SEARCH:
+                for body in res[1]:
+                    source = {"blob_id": body["title"], "file_name": body["href"], "page": "number",
+                              "perimeter": "string",
+                              "text": body["body"], "type": "href"}
+                    sources.append(source)
+
+        return {"output": result["output"], "sources": sources}
 
     def save(self, assistant):
         return self.assistants_repository.save(assistant)

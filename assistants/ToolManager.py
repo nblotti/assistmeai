@@ -9,7 +9,7 @@ from enum import Enum
 from typing import Callable, Dict, List
 
 import tiktoken
-from langchain_community.tools import DuckDuckGoSearchRun, DuckDuckGoSearchResults
+from duckduckgo_search import DDGS
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 from pypdf import PdfReader
@@ -58,7 +58,7 @@ class ToolManager:
 
 
 @tool
-def web_search(query: str) -> str:
+def web_search(query: str):
     """
     This tool is used to search web to have the latest information not present in the user library. Make sure to use
     it if you don't know the answer and that you didn't find it either in the users documents
@@ -72,10 +72,9 @@ def web_search(query: str) -> str:
         try:
             out = False
             loop += 1
-            search = DuckDuckGoSearchResults(output_format="list")
-            for result in search:
-                Document()
-            return search.invoke(query)
+
+            result = DDGS().text(query, max_results=5)
+            return result
         except Exception as e:
             time.sleep(3)
             out = True
@@ -91,7 +90,6 @@ def get_date() -> datetime:
 
 class CalculatorInput(BaseModel):
     a: list[Slide] = Field(description="The list of slides")
-
 
 
 @tool(args_schema=CalculatorInput, return_direct=True)

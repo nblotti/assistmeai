@@ -27,7 +27,7 @@ def execute_post_command(assistant_command: AssistantCommand, assistant_manager:
     try:
         result = assistant_manager.execute_command(assistant_command.conversation_id,
                                                    assistant_command.command)
-        return JSONResponse(content={"result": result})
+        return JSONResponse(content={"result": result["output"],"sources":result["sources"]})
     except Exception as e:
         print(f"Error occurred: {e}")
         raise
