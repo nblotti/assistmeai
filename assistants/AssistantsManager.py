@@ -124,13 +124,16 @@ class AssistantManager:
             ).partial(description=description, id=str(id))
             full_tools = self.tool_manager.get_tools([ToolName.SUMMARIZE, ToolName.WEB_SEARCH])
             agent = create_openai_tools_agent(llm=local_chat, tools=full_tools, prompt=prompt)
-            agent_executor = AgentExecutor(agent=agent, tools=full_tools, verbose=True)
+            agent_executor = AgentExecutor(agent=agent, tools=full_tools,
+                                           return_intermediate_steps=True,
+                                           return_source_documents=True, verbose=True)
 
             if use_memory:
                 conversational_agent_executor = RunnableWithMessageHistory(
                     agent_executor,
                     lambda session_id: memory,
                     input_messages_key="messages",
+                    return_source_documents=True,
                     output_messages_key="output",
                 )
 
@@ -149,7 +152,7 @@ class AssistantManager:
                 [
                     (
                         "system",
-                        """Make sure to you use the tools !\n\n 
+                        """Make sure to you use the tools and do not provide urls given by tools in your answer!\n\n 
                         {description}.\n\n 
                         The Assistant id is :\n\n 
                         {id}.\n\n
@@ -186,15 +189,22 @@ class AssistantManager:
                 )
 
         sources = []
-        for res in result["intermediate_steps"]:
-            if res[0].tool == ToolName.WEB_SEARCH:
-                for body in res[1]:
-                    source = {"blob_id": body["title"], "file_name": body["href"], "page": "number",
-                              "perimeter": "string",
-                              "text": body["body"], "type": "href"}
-                    sources.append(source)
-
-        return {"output": result["output"], "sources": sources}
+        if "intermediate_steps" in result:
+            for res in result["intermediate_steps"]:
+                if res[0].tool == ToolName.WEB_SEARCH:
+                    for body in res[1]:
+                        source = {"blob_id": body["title"], "file_name": body["href"], "page": "number",
+                                  "perimeter": "string",
+                                  "text": body["body"], "type": "href"}
+                        sources.append(source)
+                elif res[0].tool == ToolName.SUMMARIZE:
+                    for body in res[1]:
+                        source = {"blob_id": body[1]["blob_id"], "file_name": body[1]["file_name"], "page": body[1]["page"],
+                                  "perimeter": body[1]["perimeter"], "text": body[1]["text"], "type": "document"}
+                        sources.append(source)
+            return {"output": result["output"], "sources": sources}
+        else:
+            return {"output": result["output"]}
 
     def save(self, assistant):
         return self.assistants_repository.save(assistant)
