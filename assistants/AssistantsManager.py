@@ -115,6 +115,8 @@ class AssistantManager:
                         The Assistant ID for this session is {id}.'
                         If unsure about any details, explicitly state that the information is not available in the 
                         documents within the library instead of making assumptions. 
+                        
+                        Do not provide urls given by tools in your answer!
                         """
 
                     ),
