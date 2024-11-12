@@ -4,12 +4,16 @@ from typing import Annotated, List
 from fastapi import UploadFile, File, APIRouter, Form, Depends, Query, HTTPException
 from fastapi.openapi.models import Response
 from fastapi.responses import StreamingResponse
+from langchain_core.documents import Document
+from pydantic import BaseModel
 
 from ProviderManager import document_manager_provider, shared_group_user_dao_provider, \
     share_group_document_dao_provider, user_manager_provider
 from document.Document import DocumentType, DocumentCreate, SharedDocumentCreate, CategoryDocumentCreate, \
     LangChainDocument
 from document.DocumentManager import DocumentManager
+from embeddings.CustomAzurePGVectorRetriever import CustomAzurePGVectorRetriever
+from embeddings.EmbeddingsTools import QueryType
 from rights import UserManager
 from sharing.SharedGroupDocument import SharedGroupDocumentCreate
 from sharing.SharedGroupDocumentRepository import SharedGroupDocumentRepository
@@ -117,6 +121,16 @@ async def list_documents(
         user_manager: user_manager_dep
 ) -> List[CategoryDocumentCreate]:
     return await user_manager.list_documents(user, category_id)
+
+class SearchQuery(BaseModel):
+    query: str
+    ids: List[str]
+
+@router_file.post("/search/")
+async def list_documents(query: SearchQuery) -> List[Document]:
+    rag_retriever = CustomAzurePGVectorRetriever(QueryType.DOCUMENTS, ",".join(query.ids))
+
+    return rag_retriever.invoke(query.query)
 
 
 @router_file.get("/{blob_id}/")
