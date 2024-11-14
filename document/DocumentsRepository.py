@@ -20,7 +20,8 @@ class DocumentsRepository(BaseAlchemyRepository):
                 perimeter=document.perimeter,
                 owner=document.owner,
                 document_type=document.document_type,
-                document=document.document  # Saving the binary content
+                document=document.document,  # Saving the binary content
+                document_status=document.document_status
             )
 
             self.db.add(new_document)
@@ -34,6 +35,34 @@ class DocumentsRepository(BaseAlchemyRepository):
             self.db.rollback()
             print(f"Database error occurred: {e}")
             raise
+        finally:
+            self.db.close()
+
+
+    def update_document_status(self, document_id: int, new_status: DocumentCreate.document_status):
+        """
+        Update the status of a document.
+        :param document_id: The ID of the document to update.
+        :param new_status: The new status to set.
+        :return: True if the update was successful, False otherwise.
+        """
+        try:
+            stmt = (
+                select(Document)
+                .where(Document.id == document_id)
+            )
+            document: Document = self.db.execute(stmt).scalars().first()
+
+            if not document:
+                return False
+
+            document.document_status = new_status
+            self.db.commit()
+            return True
+        except SQLAlchemyError as e:
+            self.db.rollback()
+            print(f"Database error occurred: {e}")
+            return False
         finally:
             self.db.close()
 
@@ -62,7 +91,8 @@ class DocumentsRepository(BaseAlchemyRepository):
                     owner=result.owner,
                     summary_id=result.summary_id,
                     summary_status=result.summary_status,
-                    document_type=result.document_type
+                    document_type=result.document_type,
+                    document_status=result.document_status
                 )
             except SQLAlchemyError as e:
                 print(f"Database error occurred: {e}")
@@ -97,5 +127,6 @@ class DocumentsRepository(BaseAlchemyRepository):
             created_on=document.created_on.strftime("%d.%m.%Y"),
             summary_id=document.summary_id,
             summary_status=document.summary_status,
-            document_type=document.document_type
+            document_type=document.document_type,
+            document_status=document.document_status
         )

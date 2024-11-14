@@ -6,7 +6,7 @@ from typing import List
 from httpx import AsyncClient
 from openai import RateLimitError
 
-from document.Document import DocumentType, DocumentCreate, LangChainDocument
+from document.Document import DocumentType, DocumentCreate, LangChainDocument, DocumentStatus
 from document.DocumentsRepository import DocumentsRepository
 from embeddings.DocumentsEmbeddingsRepository import DocumentsEmbeddingsRepository
 from embeddings.EmbeddingRepository import EmbeddingRepository
@@ -112,8 +112,13 @@ class DocumentManager:
         except RateLimitError as e:
             await self.start_async_job(blob_id, new_perimeter)
 
+    def update_document_status(self, document_id: int, status: DocumentStatus) -> None:
+        return self.document_repository.update_document_status(document_id, status)
+
     def get_embeddings_by_ids(self, blob_ids: [str]):
         return self.document_embeddings_repository.get_embeddings_by_ids(blob_ids)
+
+    
 
     async def start_async_job(self, blob_id: str, perimeter: str):
         url = os.environ["LONG_EMBEDDINGS_SCRATCH_URL"]

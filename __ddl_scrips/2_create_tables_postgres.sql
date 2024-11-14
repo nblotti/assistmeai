@@ -10,7 +10,8 @@ CREATE TABLE document
     summary        numeric,
     summary_status VARCHAR(255) NOT NULL DEFAULT 'NONE',
     document_type  VARCHAR(255) NOT NULL DEFAULT 'SUMMARY',
-    document       BYTEA
+    document       BYTEA,
+    document_status VARCHAR(255) NOT NULL DEFAULT 'REQUESTED'
 );
 
 CREATE SEQUENCE owner_sequence;

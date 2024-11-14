@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from ProviderManager import document_manager_provider, shared_group_user_dao_provider, \
     share_group_document_dao_provider, user_manager_provider
 from document.Document import DocumentType, DocumentCreate, SharedDocumentCreate, CategoryDocumentCreate, \
-    LangChainDocument
+    LangChainDocument, DocumentStatus
 from document.DocumentManager import DocumentManager
 from embeddings.CustomAzurePGVectorRetriever import CustomAzurePGVectorRetriever
 from embeddings.EmbeddingsTools import QueryType
@@ -122,14 +122,24 @@ async def list_documents(
 ) -> List[CategoryDocumentCreate]:
     return await user_manager.list_documents(user, category_id)
 
+
 class SearchQuery(BaseModel):
     query: str
-    ids: List[str]
+    ids: List[str] = []
+    perimeter: str = ""
+    k: int = 0
+
 
 @router_file.post("/search/")
 async def list_documents(query: SearchQuery) -> List[Document]:
-    rag_retriever = CustomAzurePGVectorRetriever(QueryType.DOCUMENTS, ",".join(query.ids))
-
+    if query.perimeter:
+        rag_retriever = CustomAzurePGVectorRetriever(QueryType.PERIMETER, query.perimeter,
+                                                     query.k if query.k != 0 else CustomAzurePGVectorRetriever.k)
+    elif query.ids:
+        rag_retriever = CustomAzurePGVectorRetriever(QueryType.DOCUMENTS, ",".join(query.ids),
+                                                     query.k if query.k != 0 else CustomAzurePGVectorRetriever.k)
+    else:
+        return []
     return rag_retriever.invoke(query.query)
 
 
@@ -156,6 +166,19 @@ async def download_blob(document_manager: document_manager_dep, blob_id: str):
         return StreamingResponse(stream_generator(), media_type="application/octet-stream", headers=headers)
     else:
         raise HTTPException(status_code=404, detail="Blob not found")
+
+
+@router_file.put("/{blob_id}/status")
+async def update_document_status(
+        blob_id: str,
+        status: DocumentStatus,
+        document_manager: document_manager_dep
+):
+    try:
+        await document_manager.update_document_status(int(blob_id), status)
+        return Response(status_code=200, description="Document status updated successfully")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 class FileType(Enum):

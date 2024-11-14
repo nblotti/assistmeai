@@ -5,16 +5,18 @@ from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
 from langchain_core.retrievers import BaseRetriever
 
-
 from embeddings.EmbeddingsTools import QueryType
 from embeddings.postgres import vector_store
 
 
 class CustomAzurePGVectorRetriever(BaseRetriever):
     filter: dict = {}
+    k: int = 10
 
-    def __init__(self, query_type: QueryType, value: str, **kwargs: Any):
+    def __init__(self, query_type: QueryType, value: str, k: int = 10, **kwargs: Any):
         super().__init__(**kwargs)
+
+        self.k = k
 
         if query_type == QueryType.DOCUMENT:
             self.filter = {'blob_id': {"$eq": value}}
@@ -51,7 +53,7 @@ class CustomAzurePGVectorRetriever(BaseRetriever):
         return combined_filter
 
     def _get_relevant_documents(self, query: str, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
-        return vector_store.similarity_search(query=query, filter=self.filter, k=10)
+        return vector_store.similarity_search(query=query, filter=self.filter, k=self.k)
 
     def _aget_relevant_documents(self, query: str, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
-        return vector_store.similarity_search(query=query, filter=self.filter, k=10)
+        return vector_store.similarity_search(query=query, filter=self.filter, k=self.k)

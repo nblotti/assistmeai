@@ -8,6 +8,14 @@ from sqlalchemy import Column, Integer, String, Enum, LargeBinary, Date
 from sqlalchemy.orm import declarative_base, deferred
 
 
+class DocumentStatus(str, enum.Enum):
+    NONE = "NONE"
+    REQUESTED = "REQUESTED"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+
 class Jobstatus(str, enum.Enum):
     NONE = "NONE"
     REQUESTED = "REQUESTED"
@@ -43,6 +51,7 @@ class Document(Base):
     summary_id = Column(Integer, nullable=True, default=0)
     summary_status = Column(Enum(Jobstatus), nullable=True, default=Jobstatus.NONE)
     document_type = Column(Enum(DocumentType), nullable=True, default=DocumentType.DOCUMENT)
+    document_status = Column(Enum(DocumentStatus), nullable=True, default=DocumentStatus.REQUESTED)
 
 
 class DocumentCreate(BaseModel):
@@ -55,6 +64,7 @@ class DocumentCreate(BaseModel):
     summary_id: Optional[int] = None
     summary_status: Optional[Jobstatus] = Jobstatus.NONE
     document_type: Optional[DocumentType] = DocumentType.DOCUMENT
+    document_status: Optional[DocumentStatus] = DocumentStatus.REQUESTED
 
     class Config:
         use_enum_values = True  # This will use enum values when serializing/deserializing
