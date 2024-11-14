@@ -195,14 +195,21 @@ class AssistantManager:
             for res in result["intermediate_steps"]:
                 if res[0].tool == ToolName.WEB_SEARCH:
                     for body in res[1]:
-                        source = {"blob_id": body["title"], "file_name": body["href"], "page": "number",
-                                  "perimeter": "string",
-                                  "text": body["body"], "type": "href"}
-                        sources.append(source)
+                        try:
+                            source = {"blob_id": body["title"], "file_name": body["href"], "page": "number",
+                                      "perimeter": "string",
+                                      "text": body["body"], "type": "href"}
+                            sources.append(source)
+                        except Exception as e:
+                            print(e)
                 elif res[0].tool == ToolName.SUMMARIZE:
                     for body in res[1]:
-                        source = {"blob_id": body[1]["blob_id"], "file_name": body[1]["file_name"], "page": body[1]["page"],
-                                  "perimeter": body[1]["perimeter"], "text": body[1]["text"], "type": "document"}
+                        try:
+                            source = {"blob_id": body[1]["blob_id"], "file_name": body[1]["file_name"],
+                                      "page": body[1]["page"],
+                                      "perimeter": body[1]["perimeter"], "text": body[1]["text"], "type": "document"}
+                        except Exception as e:
+                            print(e)
                         sources.append(source)
             return {"output": result["output"], "sources": sources}
         else:

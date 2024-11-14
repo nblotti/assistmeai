@@ -5,7 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from BaseAlchemyRepository import BaseAlchemyRepository
-from document.Document import Document, DocumentType, DocumentCreate
+from document.Document import Document, DocumentType, DocumentCreate, DocumentStatus
 
 
 class DocumentsRepository(BaseAlchemyRepository):
@@ -38,8 +38,7 @@ class DocumentsRepository(BaseAlchemyRepository):
         finally:
             self.db.close()
 
-
-    def update_document_status(self, document_id: int, new_status: DocumentCreate.document_status):
+    def update_document_status(self, document_id: int, new_status: DocumentStatus):
         """
         Update the status of a document.
         :param document_id: The ID of the document to update.

@@ -69,8 +69,11 @@ class DocumentManager:
                                                                 file_name_pdf_extension)
         except RateLimitError as e:
             await self.start_async_job(document.id, owner)
-
+            self.document_repository.update_document_status(int(document.id),DocumentStatus.IN_PROGRESS)
+            document.document_status = DocumentStatus.IN_PROGRESS
+            return document
         self.delete_temporary_disk_file(temp_file)
+        self.document_repository.update_document_status(int(document.id),DocumentStatus.COMPLETED)
 
         return document
 
@@ -117,8 +120,6 @@ class DocumentManager:
 
     def get_embeddings_by_ids(self, blob_ids: [str]):
         return self.document_embeddings_repository.get_embeddings_by_ids(blob_ids)
-
-    
 
     async def start_async_job(self, blob_id: str, perimeter: str):
         url = os.environ["LONG_EMBEDDINGS_SCRATCH_URL"]
