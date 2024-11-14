@@ -152,11 +152,11 @@ def summarize(assistant_id: str, query: str) -> List[LangChainDocument]:
         sessions = fetch_and_prepare_sessions_sync()
     except Exception as e:
         logging.error(f"Failed to fetch sessions: {e}")
-        return "Error fetching sessions."
+        return []
 
     if not sessions:
         logging.error("No repositories found.")
-        return "Error: No repositories found."
+        return []
 
     assistant_document_manager = AssistantDocumentRepository(sessions[0])
     document_manager = DocumentManager(DocumentsEmbeddingsRepository(sessions[0]), DocumentsRepository(sessions[0]),
@@ -189,7 +189,7 @@ def summarize(assistant_id: str, query: str) -> List[LangChainDocument]:
         logging.info("-------------------------------------------------------")
         logging.info(f'Too much token : {total_token}, defaulting to standard RAG')
         logging.info("-------------------------------------------------------")
-        rag_retriever = CustomAzurePGVectorRetriever(QueryType.DOCUMENTS, ",".join(ids),10)
+        rag_retriever = CustomAzurePGVectorRetriever(QueryType.DOCUMENTS, ",".join(ids), 10)
         doc = rag_retriever.invoke(query)
         for document in doc:
             current_doc = LangChainDocument(
@@ -198,4 +198,3 @@ def summarize(assistant_id: str, query: str) -> List[LangChainDocument]:
             )
             documents.append(current_doc)
     return documents
-

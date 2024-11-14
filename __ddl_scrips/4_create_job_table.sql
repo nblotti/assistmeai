@@ -13,17 +13,24 @@ CREATE TABLE jobs (
 CREATE INDEX idx_document_created_on ON jobs (created_on);
 CREATE INDEX idx_document_status_owner ON jobs (status, owner);
 
-CREATE OR REPLACE FUNCTION update_job_status() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION update_job_status() RETURNS TRIGGER AS
+$$
 BEGIN
-   -- Update the summary_status in the document table where the source matches the updated job id
-   UPDATE document
-   SET summary_status = NEW.status,
-       summary_id = NEW.target_document_id
-   WHERE id::text = NEW.source AND
-         NEW.job_type != 'LONG_EMBEDDINGS';
+    IF NEW.job_type = 'LONG_EMBEDDINGS' THEN
+        -- Update the document_status in the document table where the source matches the updated job id
+        UPDATE document
+        SET document_status = NEW.status
+        WHERE id::text = NEW.source;
+    ELSE
+        -- Update the summary_status in the document table where the source matches the updated job id
+        UPDATE document
+        SET summary_status = NEW.status,
+            summary_id     = NEW.target_document_id
+        WHERE id::text = NEW.source;
+    END IF;
 
-   -- Return the NEW row (standard for AFTER UPDATE triggers)
-   RETURN NEW;
+    -- Return the NEW row (standard for AFTER UPDATE triggers)
+    RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
