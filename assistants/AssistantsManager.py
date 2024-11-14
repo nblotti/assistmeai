@@ -202,15 +202,18 @@ class AssistantManager:
                             sources.append(source)
                         except Exception as e:
                             print(e)
+                            continue
                 elif res[0].tool == ToolName.SUMMARIZE:
                     for body in res[1]:
                         try:
-                            source = {"blob_id": body[1]["blob_id"], "file_name": body[1]["file_name"],
-                                      "page": body[1]["page"],
-                                      "perimeter": body[1]["perimeter"], "text": body[1]["text"], "type": "document"}
+                            source = {"blob_id": body.metadata["blob_id"], "file_name": body.metadata["file_name"],
+                                      "page": body.metadata["page"],
+                                      "perimeter": body.metadata["perimeter"], "text": body.metadata["text"], "type": "document"}
+                            sources.append(source)
                         except Exception as e:
                             print(e)
-                        sources.append(source)
+                            continue
+
             return {"output": result["output"], "sources": sources}
         else:
             return {"output": result["output"]}

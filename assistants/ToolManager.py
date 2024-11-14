@@ -16,7 +16,7 @@ from pypdf import PdfReader
 
 import config
 from assistants.AssistantDocumentRepository import AssistantDocumentRepository
-from document.Document import Document
+from document.Document import LangChainDocument
 from document.DocumentManager import DocumentManager
 from document.DocumentsRepository import DocumentsRepository
 from embeddings.CustomAzurePGVectorRetriever import CustomAzurePGVectorRetriever
@@ -145,7 +145,7 @@ def template(document_id) -> []:
 
 
 @tool
-def summarize(assistant_id: str, query: str) -> str:
+def summarize(assistant_id: str, query: str) -> List[LangChainDocument]:
     """This tool is used to search into documents in the user's library."""
 
     try:
@@ -167,31 +167,35 @@ def summarize(assistant_id: str, query: str) -> str:
     ids = [num.document_id for num in assistants_document]
 
     if len(ids) == 0:
-        return "No documents found"
+        return []
 
-    documents: [str] = document_manager.get_embeddings_by_ids(ids)
-
+    docs: [] = document_manager.get_embeddings_by_ids(ids)
+    documents: list[LangChainDocument] = []
+    for document in docs:
+        current_doc = LangChainDocument(
+            page_content=document[0],
+            metadata=document[1]
+        )
+        documents.append(current_doc)
     encoding = tiktoken.encoding_for_model(os.environ["AZURE_OPENAI_EMBEDDINGS_MODEL_VERSION"])
 
     total_token: int = 0
 
     for document in documents:
-        total_token += len(encoding.encode(document[0]))
+        total_token += len(encoding.encode(document.model_dump_json()))
 
-    if total_token > 16384:
+    if total_token > 100000:
+        documents = []
         logging.info("-------------------------------------------------------")
         logging.info(f'Too much token : {total_token}, defaulting to standard RAG')
         logging.info("-------------------------------------------------------")
-        documents = ""
-        rag_retriever = CustomAzurePGVectorRetriever(QueryType.DOCUMENTS, ",".join(ids))
-        results: [Document] = rag_retriever.invoke(query)
-        documents = [result.metadata.get("text") for result in results]
-        total_token = 0
-        for document in documents:
-            total_token += len(encoding.encode(document[0]))
-
-    logging.info("-------------------------------------------------------")
-    logging.info(f'Number of token : {total_token}')
-    logging.info("-------------------------------------------------------")
-
+        rag_retriever = CustomAzurePGVectorRetriever(QueryType.DOCUMENTS, ",".join(ids),10)
+        doc = rag_retriever.invoke(query)
+        for document in doc:
+            current_doc = LangChainDocument(
+                page_content=document.page_content,
+                metadata=document.metadata
+            )
+            documents.append(current_doc)
     return documents
+
