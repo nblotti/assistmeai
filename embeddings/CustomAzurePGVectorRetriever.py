@@ -1,5 +1,5 @@
 import logging
-from typing import List, Any
+from typing import List, Any, Optional
 
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
@@ -11,7 +11,7 @@ from embeddings.postgres import vector_store
 
 class CustomAzurePGVectorRetriever(BaseRetriever):
     filter: dict = {}
-    k: int = 10
+    k: Optional[int] = 10
 
     def __init__(self, query_type: QueryType, value: str, k: int = 10, **kwargs: Any):
         super().__init__(**kwargs)
