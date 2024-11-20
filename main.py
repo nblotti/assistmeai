@@ -7,6 +7,10 @@ if os.getenv("ENVIRONNEMENT") == "PROD":
 else:
     load_dotenv()
 
+from fastapi.exceptions import RequestValidationError
+from fastapi.logger import logger
+from httpx import Request
+from starlette.responses import JSONResponse
 import logging
 from contextlib import asynccontextmanager
 from datetime import date
@@ -99,6 +103,26 @@ async def lifespan(app: FastAPI):
 
 # FastAPI application instance
 app = FastAPI(lifespan=lifespan)
+
+
+# Custom error handler for validation errors
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    # Extract the error details from the exception
+    errors = exc.errors()
+    for error in errors:
+        if error['type'] == 'missing':
+            field_loc = " -> ".join(error['loc'])
+            logger.error(f"Error: Missing required field at location: {field_loc}")
+            logger.error(f"Message: {error['msg']}")
+            if error.get('input') is None:
+                logger.error("Input: None")
+
+    # Return a JSON response with the error details
+    return JSONResponse(
+        status_code=422,
+        content={"detail": errors}
+    )
 
 
 @app.get("/ping")

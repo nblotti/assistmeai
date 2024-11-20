@@ -132,7 +132,7 @@ class SearchQuery(BaseModel):
 
 @router_file.post("/search/")
 async def list_documents(query: SearchQuery) -> List[Document]:
-    k_value = query.k if query.k and query.k != 0 else CustomAzurePGVectorRetriever.k
+    k_value = query.k if query.k and query.k != 0 else 10
 
     if query.perimeter:
         rag_retriever = CustomAzurePGVectorRetriever(QueryType.PERIMETER, query.perimeter, k_value)
