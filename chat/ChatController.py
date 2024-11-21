@@ -62,7 +62,7 @@ def message(message_repository: message_repository_dep,
     elif perimeter:
         rag_retriever = CustomAzurePGVectorRetriever(QueryType.PERIMETER, perimeter)
     else:
-        raise HTTPException(status_code=400, detail="Invalid argument: perimeter cannot be null")
+        raise HTTPException(status_code=400, detail="You need to set a document search perimeter")
 
     return do_rag(rag_retriever, memory, command)
 
