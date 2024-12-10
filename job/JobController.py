@@ -4,7 +4,6 @@ from typing import Annotated, List
 from fastapi import APIRouter, Depends, HTTPException
 from httpx import AsyncClient
 
-from ProviderManager import job_repository_provider
 from job.Job import JobRead, JobType, JobStatus, JobCreate, JobUpdate
 from job.JobRepository import JobRepository
 
