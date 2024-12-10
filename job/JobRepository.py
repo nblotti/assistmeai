@@ -5,7 +5,7 @@ import pytz
 from sqlalchemy import select
 
 from BaseAlchemyRepository import BaseAlchemyRepository
-from job.Job import JobCreate, Job, JobUpdate, JobRead, JobType
+from job.Job import JobCreate, Job, JobUpdate, JobRead, JobType, JobStatus
 
 
 class JobRepository(BaseAlchemyRepository):
@@ -37,8 +37,8 @@ class JobRepository(BaseAlchemyRepository):
 
         return self.map_to_job(job_to_update)
 
-    def list(self, type: JobType):
-        stmt = select(Job).where(Job.job_type == type)
+    def list(self, type: JobType, status: JobStatus):
+        stmt = select(Job).where(Job.job_type == type, Job.status == status)
         jobs: Sequence[Job] = self.db.execute(stmt).scalars().all()
 
         return [self.map_to_job(doc) for doc in jobs]
