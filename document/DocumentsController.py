@@ -1,3 +1,4 @@
+from dataclasses import field
 from enum import Enum
 from typing import Annotated, List
 
@@ -10,7 +11,7 @@ from pydantic import BaseModel
 from ProviderManager import document_manager_provider, shared_group_user_dao_provider, \
     share_group_document_dao_provider, user_manager_provider
 from document.Document import DocumentType, DocumentCreate, SharedDocumentCreate, CategoryDocumentCreate, \
-    LangChainDocument, DocumentStatus
+    DocumentStatus
 from document.DocumentManager import DocumentManager
 from embeddings.CustomAzurePGVectorRetriever import CustomAzurePGVectorRetriever
 from embeddings.EmbeddingsTools import QueryType
@@ -59,11 +60,6 @@ async def upload_file(
     else:
         # Upload file
         return await document_manager.upload_file(owner, file.filename, contents, document_type)
-
-
-@router_file.post("/documents")
-async def create_embeddings_for_documents(document_manager: document_manager_dep, docs: List[LangChainDocument]):
-    return await document_manager.create_embeddings_for_documents(docs)
 
 
 @router_file.delete("/{blob_id}/")
@@ -125,7 +121,7 @@ async def list_documents(
 
 class SearchQuery(BaseModel):
     query: str
-    ids: List[str] = []
+    ids: List[str] = field(default_factory=list)
     perimeter: str = ""
     k: int = 0
 
@@ -137,7 +133,7 @@ async def list_documents(query: SearchQuery) -> List[Document]:
     if query.perimeter:
         rag_retriever = CustomAzurePGVectorRetriever(QueryType.PERIMETER, query.perimeter, k_value)
     elif query.ids:
-        rag_retriever = CustomAzurePGVectorRetriever(QueryType.DOCUMENTS, ",".join(query.ids),k_value)
+        rag_retriever = CustomAzurePGVectorRetriever(QueryType.DOCUMENTS, ",".join(query.ids), k_value)
     else:
         return []
     return rag_retriever.invoke(query.query)

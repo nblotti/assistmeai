@@ -11,7 +11,6 @@ from document.DocumentCategoryRepository import DocumentCategoryRepository
 from document.DocumentManager import DocumentManager
 from document.DocumentsRepository import DocumentsRepository
 from embeddings.DocumentsEmbeddingsRepository import DocumentsEmbeddingsRepository
-from embeddings.EmbeddingRepository import EmbeddingRepository
 from job.JobRepository import JobRepository
 from message.MessageRepository import MessageRepository
 from rights.UserManager import UserManager
@@ -23,10 +22,6 @@ from sharing.SharedGroupUserRepository import SharedGroupUserRepository
 
 def user_dao_provider(session: Session = Depends(get_db)) -> UserRepository:
     return UserRepository(session)
-
-
-def embeddings_dao_provider() -> EmbeddingRepository:
-    return EmbeddingRepository()
 
 
 def shared_group_user_dao_provider(session: Session = Depends(get_db)) -> SharedGroupUserRepository:
@@ -63,8 +58,7 @@ def job_dao_provider(session: Session = Depends(get_db)) -> JobRepository:
 
 def document_manager_provider(session: Session = Depends(get_db)) -> DocumentManager:
     return DocumentManager(DocumentsEmbeddingsRepository(session),
-                           DocumentsRepository(session),
-                           EmbeddingRepository())
+                           DocumentsRepository(session))
 
 
 def user_manager_provider(session: Session = Depends(get_db)) -> UserManager:

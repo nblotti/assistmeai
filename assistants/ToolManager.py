@@ -21,7 +21,6 @@ from document.DocumentManager import DocumentManager
 from document.DocumentsRepository import DocumentsRepository
 from embeddings.CustomAzurePGVectorRetriever import CustomAzurePGVectorRetriever
 from embeddings.DocumentsEmbeddingsRepository import DocumentsEmbeddingsRepository
-from embeddings.EmbeddingRepository import EmbeddingRepository
 from embeddings.EmbeddingsTools import QueryType
 
 
@@ -235,8 +234,7 @@ def template(document_id) -> []:
         logging.error("No repositories found.")
         return "Error: No repositories found."
 
-    document_manager = DocumentManager(DocumentsEmbeddingsRepository(sessions[0]), DocumentsRepository(sessions[0]),
-                                       EmbeddingRepository())
+    document_manager = DocumentManager(DocumentsEmbeddingsRepository(sessions[0]), DocumentsRepository(sessions[0]))
 
     return get_document_text(document_manager, int(document_id))
 
@@ -256,8 +254,7 @@ def summarize(assistant_id: str, query: str) -> List[LangChainDocument]:
         return []
 
     assistant_document_manager = AssistantDocumentRepository(sessions[0])
-    document_manager = DocumentManager(DocumentsEmbeddingsRepository(sessions[0]), DocumentsRepository(sessions[0]),
-                                       EmbeddingRepository())
+    document_manager = DocumentManager(DocumentsEmbeddingsRepository(sessions[0]), DocumentsRepository(sessions[0]))
     logging.debug("Assistant id: %s", assistant_id)
     assistants_document = assistant_document_manager.list_by_assistant_id(int(assistant_id))
 
