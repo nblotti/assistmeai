@@ -78,7 +78,6 @@ def read_group(id: int, shared_group_user_repository: shared_group_document_repo
 
 @router_shared_group_document.delete("/{group_id}/")
 def delete_group(group_id: str,
-                 group: SharedGroupDocumentCreate,
                  shared_group_document_repository: shared_group_document_repository_dep,
                  job_repository: job_repository_provider_dep,
                  document_manager: document_manager_dep):
