@@ -2,21 +2,14 @@ import os
 import subprocess
 import uuid
 
-from httpx import AsyncClient
-
 from document.Document import DocumentType, DocumentCreate, DocumentStatus
 from document.DocumentsRepository import DocumentsRepository
-from embeddings.DocumentsEmbeddingsRepository import DocumentsEmbeddingsRepository
-from job.Job import JobCreate, JobType
-from job.JobRepository import JobRepository
 
 
 class DocumentManager:
 
-    def __init__(self, document_embeddings_repository: DocumentsEmbeddingsRepository,
-                 document_repository: DocumentsRepository):
+    def __init__(self, document_repository: DocumentsRepository):
         self.document_repository = document_repository
-        self.document_embeddings_repository = document_embeddings_repository
 
     async def convert_and_upload_file(self, owner: str, filename: str, contents: bytes,
                                       document_type: DocumentType = DocumentType.DOCUMENT):
@@ -80,26 +73,5 @@ class DocumentManager:
     def get_stream_by_id(self, blob_id: int) -> DocumentCreate:
         return self.document_repository.get_document_by_id(blob_id)
 
-    def delete_embeddings_by_id(self, blob_id):
-        return self.document_embeddings_repository.delete_embeddings_by_id(blob_id)
-
     def update_document_status(self, document_id: int, status: DocumentStatus) -> None:
         return self.document_repository.update_document_status(document_id, status)
-
-    def get_embeddings_by_ids(self, blob_ids: [str]):
-        return self.document_embeddings_repository.get_embeddings_by_ids(blob_ids)
-
-    async def start_async_job(self, blob_id: str, perimeter: str):
-        url = os.environ["LONG_EMBEDDINGS_SCRATCH_URL"]
-
-        job = JobCreate(
-            source=blob_id,
-            owner=perimeter,
-            job_type=JobType.LONG_EMBEDDINGS
-        )
-
-        async with AsyncClient(timeout=30) as client:
-            response = await client.post(url, json=job.model_dump())
-
-        if response.status_code != 200:
-            print(f"Error creating embedding job for long document with id {blob_id}: \n{response.text}")

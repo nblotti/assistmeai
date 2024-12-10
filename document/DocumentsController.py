@@ -14,7 +14,7 @@ from document.Document import DocumentType, DocumentCreate, SharedDocumentCreate
     DocumentStatus
 from document.DocumentManager import DocumentManager
 from embeddings.CustomAzurePGVectorRetriever import CustomAzurePGVectorRetriever
-from embeddings.EmbeddingsTools import QueryType
+from embeddings.QueryType import QueryType
 from rights import UserManager
 from sharing.SharedGroupDocument import SharedGroupDocumentCreate
 from sharing.SharedGroupDocumentRepository import SharedGroupDocumentRepository
@@ -68,7 +68,7 @@ def delete(
         blob_id: str):
     rows = document_manager.delete(blob_id)
 
-    return Response(status_code=200, description="Document deleted successfully")
+    return Response(description="Document deleted successfully")
 
 
 @router_file.get("/user/{user}")
@@ -171,8 +171,8 @@ async def update_document_status(
         document_manager: document_manager_dep
 ):
     try:
-        await document_manager.update_document_status(int(blob_id), status)
-        return Response(status_code=200, description="Document status updated successfully")
+        document_manager.update_document_status(int(blob_id), status)
+        return Response(description="Document status updated successfully")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -6,8 +6,8 @@ from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
 from langchain_core.retrievers import BaseRetriever
 
-from embeddings.EmbeddingsTools import QueryType
-from embeddings.postgres import vector_store
+from embeddings.PGVectorStore import vector_store
+from embeddings.QueryType import QueryType
 
 
 class CustomAzurePGVectorRetriever(BaseRetriever):
@@ -17,7 +17,10 @@ class CustomAzurePGVectorRetriever(BaseRetriever):
     def __init__(self, query_type: QueryType, value: str, k: int = 10, **kwargs: Any):
         super().__init__(**kwargs)
 
-        self.k = k
+        if k != -1:
+            self.k = k
+        else:
+            self.k = None
 
         if query_type == QueryType.DOCUMENT:
             self.filter = {'blob_id': {"$eq": value}}

@@ -4,8 +4,8 @@ from typing import Annotated, List
 from fastapi import APIRouter, Depends, HTTPException
 from httpx import AsyncClient
 
-from ProviderManager import job_dao_provider
-from job.Job import JobCreate, JobUpdate, JobRead, JobType
+from ProviderManager import job_repository_provider
+from job.Job import JobRead, JobType, JobStatus, JobCreate, JobUpdate
 from job.JobRepository import JobRepository
 
 router_job = APIRouter(
@@ -14,13 +14,15 @@ router_job = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-job_dao_provider_dep = Annotated[JobRepository, Depends(job_dao_provider)]
+job_dao_provider_dep = Annotated[JobRepository, Depends(job_repository_provider)]
 
 
 @router_job.get("/")
-async def create(type: JobType, job_repository: job_dao_provider_dep) -> List[JobRead]:
+async def create(type: JobType, job_repository: job_dao_provider_dep, status: JobStatus = JobStatus.REQUESTED) \
+        -> List[JobRead]:
     try:
-        return job_repository.list(type)
+        return job_repository.list(type, status)
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -22,6 +22,7 @@ class JobType(str, enum.Enum):
     SUMMARY = "SUMMARY"
     SCRAP = "SCRAP"
     LONG_EMBEDDINGS = "LONG_EMBEDDINGS"
+    SHARE = "SHARE"
 
 
 class Job(Base):

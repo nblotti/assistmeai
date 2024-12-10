@@ -3,11 +3,11 @@ from langchain_core.messages import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableWithMessageHistory
 
-from assistants import AssistantsRepository
-from assistants.Assistant import Assistant
+from assistants.Assistant import Assistant, AssistantCreate
+from assistants.AssistantsRepository import AssistantsRepository
 from assistants.ToolManager import ToolManager, ToolName
 from chat.azure_openai import chat_gpt_4o, chat_gpt_4, chat_gpt_4o_mini
-from message import MessageRepository
+from message.MessageRepository import MessageRepository
 from message.SqlMessageHistory import build_agent_memory
 
 
@@ -50,17 +50,7 @@ class AssistantManager:
     def __init__(self, message_repository: MessageRepository,
                  assistants_repository: AssistantsRepository,
                  tool_manager: ToolManager):
-        """
-        Initializes the AssistantsManager with the provided repositories and tool manager.
 
-        :param message_repository: Manages the storage and retrieval of messages.
-        :type message_repository: MessageRepository
-        :param assistants_repository: Manages the information and operations related
-            to assistants.
-        :type assistants_repository: AssistantsRepository
-        :param tool_manager: Handles the different tools used by assistants.
-        :type tool_manager: ToolManager
-        """
         self.message_repository = message_repository
         self.assistants_repository = assistants_repository
         self.tool_manager = tool_manager
@@ -77,8 +67,8 @@ class AssistantManager:
         :return: Result of the command execution
         :rtype: varies
         """
-        assistant: Assistant = self.assistants_repository.get_assistant_by_conversation_id(conversation_id)
-        return self.execute_command_documents(conversation_id, command, assistant.id,
+        assistant: AssistantCreate = self.assistants_repository.get_assistant_by_conversation_id(conversation_id)
+        return self.execute_command_documents(conversation_id, command, int(assistant.id),
                                               assistant.description,
                                               assistant.use_documents, assistant.gpt_model_number)
 
@@ -109,7 +99,7 @@ class AssistantManager:
         agent = create_openai_tools_agent(llm=local_chat, tools=tools, prompt=prompt)
         agent_executor = AgentExecutor(agent=agent, tools=tools,
                                        return_intermediate_steps=True,
-                                       return_source_documents=True, verbose=True)
+                                       verbose=True)
 
         conversational_agent_executor = RunnableWithMessageHistory(
             agent_executor,
@@ -154,7 +144,7 @@ class AssistantManager:
                 ("placeholder", "{messages}"),
                 ("placeholder", "{agent_scratchpad}")
             ]).partial(description=assistant_description, id=str(assistant_id))
-            tools = self.tool_manager.get_tools([ToolName.SUMMARIZE, ToolName.WEB_SEARCH])
+            tools = self.tool_manager.get_tools([ToolName.SEARCH_LIBRARY, ToolName.WEB_SEARCH])
         else:
             prompt = ChatPromptTemplate.from_messages([
                 ("system", self.SYSTEM_PROMPT_NO_DOCS),
@@ -188,7 +178,7 @@ class AssistantManager:
                     except Exception as e:
                         print(e)
                         continue
-            elif res[0].tool == ToolName.SUMMARIZE:
+            elif res[0].tool == ToolName.SEARCH_LIBRARY:
                 for body in res[1]:
                     try:
                         source = {"blob_id": body.metadata["blob_id"], "file_name": body.metadata["file_name"],
@@ -201,7 +191,7 @@ class AssistantManager:
                         continue
         return sources
 
-    def save(self, assistant):
+    def save(self, assistant: AssistantCreate):
         """
         Saves the provided assistant object to the repository.
 
@@ -215,7 +205,7 @@ class AssistantManager:
         """
         return self.assistants_repository.save(assistant)
 
-    def update(self, assistant):
+    def update(self, assistant: AssistantCreate):
         """
         Update an assistant record in the repository.
 

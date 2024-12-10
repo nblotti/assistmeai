@@ -143,3 +143,4 @@ class AssistantsRepository(BaseAlchemyRepository):
         )
 
         return assistant
+

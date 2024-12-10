@@ -16,7 +16,7 @@ from conversation.ConversationRepository import ConversationRepository
 from document.Document import DocumentCreate, DocumentType
 from document.DocumentManager import DocumentManager
 from embeddings.CustomAzurePGVectorRetriever import CustomAzurePGVectorRetriever
-from embeddings.EmbeddingsTools import QueryType
+from embeddings.QueryType import QueryType
 from message.MessageRepository import MessageRepository
 from message.SqlMessageHistory import build_agent_memory, SqlMessageHistory
 

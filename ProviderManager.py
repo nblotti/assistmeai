@@ -10,7 +10,6 @@ from conversation.ConversationRepository import ConversationRepository
 from document.DocumentCategoryRepository import DocumentCategoryRepository
 from document.DocumentManager import DocumentManager
 from document.DocumentsRepository import DocumentsRepository
-from embeddings.DocumentsEmbeddingsRepository import DocumentsEmbeddingsRepository
 from job.JobRepository import JobRepository
 from message.MessageRepository import MessageRepository
 from rights.UserManager import UserManager
@@ -52,13 +51,12 @@ def document_dao_provider(session: Session = Depends(get_db)) -> DocumentsReposi
     return DocumentsRepository(session)
 
 
-def job_dao_provider(session: Session = Depends(get_db)) -> JobRepository:
+def job_repository_provider(session: Session = Depends(get_db)) -> JobRepository:
     return JobRepository(session)
 
 
 def document_manager_provider(session: Session = Depends(get_db)) -> DocumentManager:
-    return DocumentManager(DocumentsEmbeddingsRepository(session),
-                           DocumentsRepository(session))
+    return DocumentManager(DocumentsRepository(session))
 
 
 def user_manager_provider(session: Session = Depends(get_db)) -> UserManager:

@@ -22,17 +22,17 @@ BEGIN
         UPDATE document
         SET document_status = NEW.status
         WHERE id::text = NEW.source;
-    ELSE
-        -- Update the summary_status in the document table where the source matches the updated job id
-        UPDATE document
-        SET summary_status = NEW.status,
-            summary_id     = NEW.target_document_id
-        WHERE id::text = NEW.source;
-    END IF;
+    ELSIF NEW.job_type = 'SUMMARY' THEN
+            -- Update the summary_status in the document table where the source matches the updated job id
+            UPDATE document
+            SET summary_status = NEW.status,
+                summary_id     = NEW.target_document_id
+            WHERE id::text = NEW.source;
+        END IF;
 
-    -- Return the NEW row (standard for AFTER UPDATE triggers)
-    RETURN NEW;
-END;
+        -- Return the NEW row (standard for AFTER UPDATE triggers)
+        RETURN NEW;
+    END;
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION remove_job_status() RETURNS TRIGGER AS
@@ -43,7 +43,8 @@ BEGIN
     SET summary_status = 'NONE',
         summary_id     = null
     WHERE id::text = NEW.source
-      AND NEW.job_type != 'LONG_EMBEDDINGS';
+      AND NEW.job_type != 'LONG_EMBEDDINGS'
+      AND NEW.job_type != 'SHARE';
 
     -- Return the NEW row (standard for AFTER UPDATE triggers)
     RETURN NEW;
