@@ -172,8 +172,8 @@ def search_library(assistant_id: str, query: str) -> List[LangChainDocument]:
     documents: list[LangChainDocument] = []
     for document in docs:
         current_doc = LangChainDocument(
-            page_content=document[0],
-            metadata=document[1]
+            page_content=document.page_content,
+            metadata=document.metadata
         )
         documents.append(current_doc)
     encoding = tiktoken.encoding_for_model(os.environ["AZURE_OPENAI_EMBEDDINGS_MODEL_VERSION"])
