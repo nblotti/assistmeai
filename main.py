@@ -72,7 +72,7 @@ class BearerTokenMiddleware(BaseHTTPMiddleware):
             result = self.verify_token(token)
             return await call_next(request)
         else:
-            logging.error("Authorization header missing or invalid")
+            #logging.error("Authorization header missing or invalid")
             # return Response(content="Authorization header missing or invalid", status_code=401)
             return await call_next(request)
 
@@ -84,10 +84,10 @@ class BearerTokenMiddleware(BaseHTTPMiddleware):
             # logging.info("JWT token is valid : decoded payload: %s", decoded_payload)
             return True
         except ExpiredSignatureError:
-            logging.error("JWT Token has expired")
+            #logging.error("JWT Token has expired")
             return True
         except InvalidTokenError:
-            logging.error("JWT Token is invalid")
+            #logging.error("JWT Token is invalid")
             return True
 
 
