@@ -145,14 +145,18 @@ async def download_blob(document_manager: document_manager_dep, blob_id: str):
 
     if document_data:
         # Set headers for the response
+
+        def sanitize_to_latin1(input_str):
+            return input_str.encode('latin-1', errors='ignore').decode('latin-1')
+
         headers = {
-            "Content-Disposition": f"attachment; filename={document_data.name}",
+            "Content-Disposition": f"attachment; filename={sanitize_to_latin1(document_data.name)}",
             "Content-Type": "application/octet-stream",
-            "X-Perimeter": document_data.perimeter,
-            "X-Owner": document_data.owner,
-            "X-Created-On": document_data.created_on if document_data.created_on else "",
-            "X-File-Name": document_data.name,
-            "X-Document-Type": document_data.document_type,
+            "X-Perimeter": sanitize_to_latin1(document_data.perimeter),
+            "X-Owner": sanitize_to_latin1(document_data.owner),
+            "X-Created-On": sanitize_to_latin1(document_data.created_on) if document_data.created_on else "",
+            "X-File-Name": sanitize_to_latin1(document_data.name),
+            "X-Document-Type": sanitize_to_latin1(document_data.document_type),
         }
 
         def stream_generator():

@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 if os.getenv("ENVIRONNEMENT") == "PROD":
     load_dotenv("config/.env")
 else:
-    load_dotenv()
+    load_dotenv("devenv/.env")
 
 from fastapi.exceptions import RequestValidationError
 from fastapi.logger import logger
