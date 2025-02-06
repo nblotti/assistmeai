@@ -1,6 +1,8 @@
+import shutil
+import tempfile
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Form, File, UploadFile
 from starlette.responses import JSONResponse
 
 from ProviderManager import assistant_manager_provider, conversation_dao_provider
@@ -55,6 +57,20 @@ def execute_command(assistant_command: AssistantCommand,
     result = assistant_manager.execute_command(assistant_command.conversation_id,
                                                assistant_command.command)
     return JSONResponse(content=build_response_content(result))
+
+
+@router_assistant.post("/voicecommand/")
+async def upload_voice_command(
+        assistant_manager: assistant_manager_dep,
+        conversation_id: str = Form(...),
+        file: UploadFile = File(...)):
+    with tempfile.NamedTemporaryFile(suffix=".mp3",delete=False) as tmp:
+        contents = await file.read()
+        tmp.write(contents)
+        tmp_path = tmp.name
+
+    result = assistant_manager.execute_voice_command(conversation_id, tmp_path)
+    return JSONResponse(content="")
 
 
 @router_assistant.get("/command/")

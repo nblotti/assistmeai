@@ -1,4 +1,5 @@
 from langchain.agents import create_openai_tools_agent, AgentExecutor
+from langchain_core.documents.base import Blob
 from langchain_core.messages import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableWithMessageHistory
@@ -6,7 +7,7 @@ from langchain_core.runnables import RunnableWithMessageHistory
 from assistants.Assistant import Assistant, AssistantCreate
 from assistants.AssistantsRepository import AssistantsRepository
 from assistants.ToolManager import ToolManager, ToolName
-from chat.azure_openai import chat_gpt_4o, chat_gpt_4, chat_gpt_4o_mini
+from chat.azure_openai import chat_gpt_4o, chat_gpt_4, chat_gpt_4o_mini, whisper
 from message.MessageRepository import MessageRepository
 from message.SqlMessageHistory import build_agent_memory
 
@@ -69,6 +70,19 @@ class AssistantManager:
         """
         assistant: AssistantCreate = self.assistants_repository.get_assistant_by_conversation_id(conversation_id)
         return self.execute_command_documents(conversation_id, command, int(assistant.id),
+                                              assistant.description,
+                                              assistant.use_documents, assistant.gpt_model_number)
+
+    def execute_voice_command(self, conversation_id: str, tmp_path: str):
+        audio_blob = Blob(path=tmp_path)
+        documents = whisper.lazy_parse(blob=audio_blob)
+
+        content = ""
+        for document in documents:
+            content += document.page_content
+
+        assistant: AssistantCreate = self.assistants_repository.get_assistant_by_conversation_id(conversation_id)
+        return self.execute_command_documents(conversation_id, content, int(assistant.id),
                                               assistant.description,
                                               assistant.use_documents, assistant.gpt_model_number)
 
