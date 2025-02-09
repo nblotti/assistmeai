@@ -1,13 +1,14 @@
 from http.client import HTTPException
 
 from langchain.agents import create_openai_tools_agent, AgentExecutor
+from langchain_core.documents.base import Blob
 from langchain_core.messages import HumanMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableWithMessageHistory, RunnablePassthrough
 
 from assistants.ToolManager import ToolManager, ToolName
-from chat.azure_openai import chat_gpt_4o
+from chat.azure_openai import chat_gpt_4o, whisper
 from conversation.Conversation import ConversationCreate
 from conversation.ConversationRepository import ConversationRepository
 from document.Document import DocumentCreate, DocumentType
@@ -162,5 +163,15 @@ class ChatManager:
         return result
         # Return response with results and possibly source metadata
 
-    def execute_voice_command(self, conversation_id, tmp_path):
-        pass
+    def execute_voice_command(self, conversation_id, perimeter, tmp_path):
+        audio_blob = Blob(path=tmp_path)
+        documents = whisper.lazy_parse(blob=audio_blob)
+
+        content = ""
+        for document in documents:
+            content += document.page_content
+
+        result: dict = self.message(content, conversation_id, perimeter)
+
+        result["question"] = content
+        return result

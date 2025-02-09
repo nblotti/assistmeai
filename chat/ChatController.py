@@ -42,13 +42,14 @@ def message(chat_manager: chat_manager_dep,
 async def upload_voice_command(
         chat_manager: chat_manager_dep,
         conversation_id: str = Form(...),
+        perimeter: str =Form(...),
         file: UploadFile = File(...)):
     with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
         contents = await file.read()
         tmp.write(contents)
         tmp_path = tmp.name
 
-    result = chat_manager.execute_voice_command(conversation_id, tmp_path)
+    result = chat_manager.execute_voice_command(conversation_id,perimeter, tmp_path)
     return JSONResponse(content=build_response_content(result))
 
 
