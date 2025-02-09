@@ -28,8 +28,7 @@ class AssistantManager:
     :type tool_manager: ToolManager
     """
     SYSTEM_PROMPT_DOCS = """
-            Access and utilize the documents stored in the user's library for any information or data you 
-            need.
+            Search into documents in the user's library.\n
             Employ the summarization tool to search the user’s library. Extract and condense information 
             from relevant documents to craft your responses. Ensure your responses are well-informed by 
             these documents. 
@@ -80,11 +79,13 @@ class AssistantManager:
         content = ""
         for document in documents:
             content += document.page_content
-
         assistant: AssistantCreate = self.assistants_repository.get_assistant_by_conversation_id(conversation_id)
-        return self.execute_command_documents(conversation_id, content, int(assistant.id),
-                                              assistant.description,
-                                              assistant.use_documents, assistant.gpt_model_number)
+        result: dict = self.execute_command_documents(conversation_id, content, int(assistant.id),
+                                                      assistant.description,
+                                                      assistant.use_documents, assistant.gpt_model_number)
+
+        result["question"] = content
+        return result
 
     def execute_command_documents(self, conversation_id: str, command: str, assistant_id: int,
                                   assistant_description: str,

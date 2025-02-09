@@ -1,4 +1,3 @@
-import shutil
 import tempfile
 from typing import Annotated
 
@@ -24,21 +23,14 @@ conversation_repository_dep = Annotated[ConversationRepository, Depends(conversa
 
 
 def build_response_content(result):
-    """
-    Build a response content dictionary from the given result.
 
-    This function constructs a dictionary containing the "result" key from the given
-    result dictionary. If the result dictionary contains a "sources" key, it is also
-    included in the response content.
-
-    :param result: The result data containing at least the "output" key
-    :type result: dict
-    :return: The constructed response content
-    :rtype: dict
-    """
     response_content = {"result": result["output"]}
     if "sources" in result:
         response_content["sources"] = result["sources"]
+    if "question" in result:
+        response_content["question"] = result["question"]
+    return response_content
+
     return response_content
 
 
@@ -64,13 +56,13 @@ async def upload_voice_command(
         assistant_manager: assistant_manager_dep,
         conversation_id: str = Form(...),
         file: UploadFile = File(...)):
-    with tempfile.NamedTemporaryFile(suffix=".mp3",delete=False) as tmp:
+    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
         contents = await file.read()
         tmp.write(contents)
         tmp_path = tmp.name
 
     result = assistant_manager.execute_voice_command(conversation_id, tmp_path)
-    return JSONResponse(content="")
+    return JSONResponse(content=build_response_content(result))
 
 
 @router_assistant.get("/command/")

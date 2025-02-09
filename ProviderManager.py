@@ -5,6 +5,7 @@ from assistants.AssistantDocumentRepository import AssistantDocumentRepository
 from assistants.AssistantsManager import AssistantManager
 from assistants.AssistantsRepository import AssistantsRepository
 from assistants.ToolManager import ToolManager
+from chat.ChatManager import ChatManager
 from config import get_db
 from conversation.ConversationRepository import ConversationRepository
 from document.DocumentCategoryRepository import DocumentCategoryRepository
@@ -71,3 +72,10 @@ def assistant_document_dao_provider(session: Session = Depends(get_db)) -> Assis
 
 def assistant_manager_provider(session: Session = Depends(get_db)) -> AssistantManager:
     return AssistantManager(message_dao_provider(session), AssistantsRepository(session), ToolManager())
+
+
+def chat_manager_provider(session: Session = Depends(get_db)) -> ChatManager:
+    return ChatManager(message_dao_provider(session),
+                       document_manager_provider(session),
+                       conversation_dao_provider(session)
+                       )

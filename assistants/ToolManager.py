@@ -33,14 +33,14 @@ class ToolName(str, Enum):
     :vartype WEB_SEARCH: str
     :ivar GET_DATE: Represents the tool for getting the current date.
     :vartype GET_DATE: str
-    :ivar SEARCH_LIBRARY: Represents the tool for summarizing content or data.
-    :vartype SUMMARIZE: str
+    :ivar SEARCH_LIBRARY: Represents the tool for searching into user library.
+    :vartype SEARCH_LIBRARY: str
     :ivar TEMPLATE: Represents a general-purpose template tool.
     :vartype TEMPLATE: str
     """
     WEB_SEARCH = "web_search"
     GET_DATE = "get_date"
-    SEARCH_LIBRARY = "summarize"
+    SEARCH_LIBRARY = "search_library"
     TEMPLATE = "template"
 
 
@@ -145,7 +145,7 @@ def template(document_id) -> []:
 
 @tool
 def search_library(assistant_id: str, query: str) -> List[LangChainDocument]:
-    """This tool is used to search into documents in the user's library."""
+    """This tool is used to search documents in the user's library."""
 
     try:
         sessions = fetch_and_prepare_sessions_sync()
