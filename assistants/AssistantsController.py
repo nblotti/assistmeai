@@ -23,14 +23,11 @@ conversation_repository_dep = Annotated[ConversationRepository, Depends(conversa
 
 
 def build_response_content(result):
-
     response_content = {"result": result["output"]}
     if "sources" in result:
         response_content["sources"] = result["sources"]
     if "question" in result:
         response_content["question"] = result["question"]
-    return response_content
-
     return response_content
 
 
