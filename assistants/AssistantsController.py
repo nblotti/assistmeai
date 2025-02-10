@@ -1,3 +1,4 @@
+import os
 import tempfile
 from typing import Annotated
 
@@ -49,17 +50,20 @@ def execute_command(assistant_command: AssistantCommand,
 
 
 @router_assistant.post("/voicecommand/")
-async def upload_voice_command(
+def upload_voice_command(
         assistant_manager: assistant_manager_dep,
         conversation_id: str = Form(...),
         file: UploadFile = File(...)):
-    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
-        contents = await file.read()
-        tmp.write(contents)
-        tmp_path = tmp.name
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Save the uploaded file in the temporary directory
+        file_path = os.path.join(temp_dir, file.filename)
+        with open(file_path, 'wb') as f:
+            f.write(file.file.read())
 
-    result = assistant_manager.execute_voice_command(conversation_id, tmp_path)
-    return JSONResponse(content=build_response_content(result))
+        result = assistant_manager.execute_voice_command(conversation_id, file_path)
+        return JSONResponse(content=build_response_content(result))
+
+
 
 
 @router_assistant.get("/command/")

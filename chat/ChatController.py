@@ -1,3 +1,4 @@
+import os
 import tempfile
 from typing import Annotated, Iterable
 
@@ -49,7 +50,7 @@ async def upload_voice_command(
         tmp.write(contents)
         tmp_path = tmp.name
 
-    result = chat_manager.execute_voice_command(conversation_id,perimeter, tmp_path)
+    result = chat_manager.execute_voice_command(conversation_id, perimeter, tmp_path)
     return JSONResponse(content=build_response_content(result))
 
 
