@@ -62,6 +62,18 @@ async def upload_file(
         return await document_manager.upload_file(owner, file.filename, contents, document_type)
 
 
+@router_file.post("/")
+async def upload_focus_file(
+        document_manager: document_manager_dep,
+        owner: str = Form(...),
+        document_type: DocumentType = Form(default=DocumentType.DOCUMENT, alias='type'),
+        file: UploadFile = File(...)
+):
+
+    contents = await file.read()
+    return await document_manager.save_focus_document(owner, file.filename, contents, document_type)
+
+
 @router_file.delete("/{blob_id}/")
 def delete(
         document_manager: document_manager_dep,

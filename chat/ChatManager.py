@@ -53,6 +53,20 @@ class ChatManager:
 
         return self.do_rag(rag_retriever, memory, command)
 
+    def focus(self, command: str, conversation_id: str):
+        # Get the current conversation and build document memory
+        cur_conversation: ConversationCreate = self.conversation_repository.get_conversation_by_id(int(conversation_id))
+        memory = build_agent_memory(self.message_repository, conversation_id)
+
+        # Determine the appropriate retriever based on the perimeter or conversation PDF ID
+        if cur_conversation.pdf_id is not None and cur_conversation.pdf_id != 0:
+            document: DocumentCreate = self.document_manager.get_by_id(cur_conversation.pdf_id)
+            if document.document_type != DocumentType.TEMPLATE:
+                rag_retriever = CustomAzurePGVectorRetriever(QueryType.DOCUMENT, str(cur_conversation.pdf_id))
+                return self.do_rag(rag_retriever, memory, command)
+
+        raise HTTPException(status_code=400, detail="You need to set a document search perimeter")
+
     def do_template(self,
                     memory: SqlMessageHistory,
                     command: str,

@@ -34,6 +34,10 @@ class DocumentManager:
 
         return await self.upload_file(owner, file_name_pdf_extension, binary_content, document_type)
 
+    async def save_focus_document(self, owner: str, filename: str, contents: bytes,
+                                  document_type: DocumentType = DocumentType.DOCUMENT):
+        return self.upload_file(owner, filename, contents, document_type)
+
     async def upload_file(self, owner: str, filename: str, contents: bytes,
                           document_type: DocumentType = DocumentType.DOCUMENT):
 
