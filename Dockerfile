@@ -1,4 +1,4 @@
-FROM python:3.12-alpine
+FROM python:alpine3.21
 #FROM python:3.8.7-slim-buster
 
 WORKDIR /app
@@ -12,13 +12,14 @@ ENV ENVIRONNEMENT PROD
 # install dependencies
 COPY requirements.txt /app/requirements.txt
 
-RUN pip install --upgrade pip && pip install "psycopg[binary,pool]" && apk update &&  \
-    apk add --no-cache python3 postgresql-libs postgresql-client && \
-    apk add --no-cache --virtual .build-deps gcc python3-dev musl-dev postgresql-dev && \
-    python3 -m pip install -r requirements.txt --no-cache-dir && apk --purge del .build-deps && \
-    apk add openjdk17-jre-headless && apk  add --no-cache libreoffice && \
-    apk add --no-cache msttcorefonts-installer fontconfig && update-ms-fonts
-
+RUN apk add --no-cache g++ clang linux-headers \
+    && pip install --upgrade pip \
+    && pip install "psycopg[binary,pool]" \
+    && apk update \
+    && apk add --no-cache python3 postgresql-libs postgresql-client \
+    && apk add --no-cache --virtual .build-deps build-base python3-dev postgresql-dev \
+    && python3 -m pip install -r requirements.txt --no-cache-dir \
+    && apk --purge del .build-deps
 
 
 # copy project

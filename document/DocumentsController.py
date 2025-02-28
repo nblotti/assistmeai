@@ -1,5 +1,4 @@
 from dataclasses import field
-from enum import Enum
 from typing import Annotated, List
 
 from fastapi import UploadFile, File, APIRouter, Form, Depends, Query, HTTPException
@@ -40,38 +39,9 @@ async def upload_file(
         document_type: DocumentType = Form(default=DocumentType.DOCUMENT, alias='type'),
         file: UploadFile = File(...)
 ):
-    enum_type = FileType.PDF
-
     contents = await file.read()
 
-    if file.filename.endswith(".pdf"):
-        enum_type = FileType.PDF
-    elif file.filename.endswith(".docx"):
-        enum_type = FileType.DOCX
-    elif file.filename.endswith(".xlsx"):
-        enum_type = FileType.XLSX
-    elif file.filename.endswith(".pptx"):
-        enum_type = FileType.PPTX
-    else:
-        raise ValueError("Unsupported file type")
-
-    if enum_type == FileType.DOCX:
-        return await document_manager.convert_and_upload_file(owner, file.filename, contents, document_type)
-    else:
-        # Upload file
-        return await document_manager.upload_file(owner, file.filename, contents, document_type)
-
-
-@router_file.post("/")
-async def upload_focus_file(
-        document_manager: document_manager_dep,
-        owner: str = Form(...),
-        document_type: DocumentType = Form(default=DocumentType.DOCUMENT, alias='type'),
-        file: UploadFile = File(...)
-):
-
-    contents = await file.read()
-    return await document_manager.save_focus_document(owner, file.filename, contents, document_type)
+    return await document_manager.upload_file(owner, file.filename, contents)
 
 
 @router_file.delete("/{blob_id}/")
@@ -191,10 +161,3 @@ async def update_document_status(
         return Response(description="Document status updated successfully")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-class FileType(Enum):
-    PDF = 'application/pdf'
-    DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    PPTX = 'application/vnd.openxmlformats-officedocument.presentationml.presentation'

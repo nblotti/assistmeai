@@ -1,6 +1,4 @@
 import os
-import subprocess
-import uuid
 
 from document.Document import DocumentType, DocumentCreate, DocumentStatus
 from document.DocumentsRepository import DocumentsRepository
@@ -11,42 +9,21 @@ class DocumentManager:
     def __init__(self, document_repository: DocumentsRepository):
         self.document_repository = document_repository
 
-    async def convert_and_upload_file(self, owner: str, filename: str, contents: bytes,
-                                      document_type: DocumentType = DocumentType.DOCUMENT):
-
-        path = "./" + str(uuid.uuid4())
-        temp_file = path + ".document"
-        temp_pdf_file = path + ".pdf"
-
-        with open(temp_file, "wb") as file_w:
-            file_w.write(contents)
-
-        binary_content = subprocess.check_output(['libreoffice', '--headless', '--convert-to', 'pdf', temp_file])
-
-        # Read the PDF file in binary mode
-        with open(temp_pdf_file, 'rb') as file:
-            binary_content = file.read()
-
-        self.delete_temporary_disk_file(temp_file)
-        self.delete_temporary_disk_file(temp_pdf_file)
-
-        file_name_pdf_extension = filename[:-5] + ".pdf"  # Remove last 5 characters (".docx")
-
-        return await self.upload_file(owner, file_name_pdf_extension, binary_content, document_type)
-
-    async def save_focus_document(self, owner: str, filename: str, contents: bytes,
-                                  document_type: DocumentType = DocumentType.DOCUMENT):
-        return self.upload_file(owner, filename, contents, document_type)
-
     async def upload_file(self, owner: str, filename: str, contents: bytes,
-                          document_type: DocumentType = DocumentType.DOCUMENT):
+                          document_type: DocumentType = DocumentType.DOCUMENT, ):
+
+        if not filename.endswith("pdf"):
+            focus_only = True
+        else:
+            focus_only = False
 
         new_document = DocumentCreate(
             owner=owner,
             name=filename,
             perimeter=owner,
             document=contents,
-            document_type=document_type
+            document_type=document_type,
+            focus_only=focus_only
         )
 
         return self.document_repository.save(new_document)

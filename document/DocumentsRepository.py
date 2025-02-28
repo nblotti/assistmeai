@@ -21,7 +21,8 @@ class DocumentsRepository(BaseAlchemyRepository):
                 owner=document.owner,
                 document_type=document.document_type,
                 document=document.document,  # Saving the binary content
-                document_status=document.document_status
+                document_status=document.document_status,
+                focus_only=document.focus_only
             )
 
             self.db.add(new_document)
@@ -91,7 +92,8 @@ class DocumentsRepository(BaseAlchemyRepository):
                     summary_id=result.summary_id,
                     summary_status=result.summary_status,
                     document_type=result.document_type,
-                    document_status=result.document_status
+                    document_status=result.document_status,
+                    focus_only=result.focus_only
                 )
             except SQLAlchemyError as e:
                 print(f"Database error occurred: {e}")
@@ -127,5 +129,6 @@ class DocumentsRepository(BaseAlchemyRepository):
             summary_id=document.summary_id,
             summary_status=document.summary_status,
             document_type=document.document_type,
-            document_status=document.document_status
+            document_status=document.document_status,
+            focus_only=document.focus_only
         )

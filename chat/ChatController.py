@@ -40,12 +40,6 @@ def message(chat_manager: chat_manager_dep,
 
 
 
-@chat_ai.get("/focus/")
-def message(chat_manager: chat_manager_dep,
-            command: str, conversation_id: str, perimeter: str = Query(None)):
-    result = chat_manager.message(command, conversation_id, perimeter)
-    return JSONResponse(content=build_response_content(result))
-
 
 @chat_ai.post("/voicecommand/")
 async def upload_voice_command(

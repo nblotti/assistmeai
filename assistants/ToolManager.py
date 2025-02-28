@@ -8,8 +8,10 @@ from datetime import datetime
 from enum import Enum
 from typing import Callable, Dict, List
 
+import requests
 import tiktoken
 from duckduckgo_search import DDGS
+from langchain_core.documents import Document
 from langchain_core.tools import tool
 from pydantic import BaseModel
 from pypdf import PdfReader
@@ -42,6 +44,7 @@ class ToolName(str, Enum):
     GET_DATE = "get_date"
     SEARCH_LIBRARY = "search_library"
     TEMPLATE = "template"
+    FOCUS_ONLY = "focus_only"
 
 
 class Slide(BaseModel):
@@ -58,7 +61,8 @@ class ToolManager:
             ToolName.WEB_SEARCH: web_search,
             ToolName.GET_DATE: get_date,
             ToolName.SEARCH_LIBRARY: search_library,
-            ToolName.TEMPLATE: template
+            ToolName.TEMPLATE: template,
+            ToolName.FOCUS_ONLY: load_focus_only_document
         }
 
     def get_tools(self, tool_names: List[ToolName]) -> List[Callable[..., str]]:
@@ -144,6 +148,50 @@ def template(document_id) -> []:
 
 
 @tool
+def load_focus_only_document(document_id: str, ) -> List[LangChainDocument]:
+    """This tool is used to load a focus only document content"""
+
+    try:
+        sessions = fetch_and_prepare_sessions_sync()
+    except Exception as e:
+        logging.error(f"Failed to fetch sessions: {e}")
+        return []
+
+    if not sessions:
+        logging.error("No repositories found.")
+        return []
+
+    document_repository = EmbeddingRepository(sessions[0])
+
+    document = document_repository.get_document_by_id(int(document_id))
+
+
+    rag_retriever = CustomAzurePGVectorRetriever(QueryType.DOCUMENT,  document_id, -1)
+    docs = rag_retriever.invoke(query)
+    documents: list[LangChainDocument] = []
+    for document in docs:
+        current_doc = LangChainDocument(
+            page_content=document.page_content,
+            metadata=document.metadata
+        )
+        documents.append(current_doc)
+    encoding = tiktoken.get_encoding("o200k_base")
+
+    total_token: int = 0
+
+    for document in documents:
+        total_token += len(encoding.encode(document.model_dump_json()))
+
+    if total_token > 100000:
+        logging.info(f'Too much token : {total_token}, defaulting to standard RAG')
+        rag_retriever = CustomAzurePGVectorRetriever(QueryType.DOCUMENTS, ",".join(map(str, document_ids)), 10)
+        docs = rag_retriever.invoke(query)
+        return [LangChainDocument(page_content=doc.page_content, metadata=doc.metadata) for doc in docs]
+
+    return documents
+
+
+@tool
 def search_library(assistant_id: str, query: str) -> List[LangChainDocument]:
     """This tool is used to search documents in the user's library."""
 
@@ -176,7 +224,7 @@ def search_library(assistant_id: str, query: str) -> List[LangChainDocument]:
             metadata=document.metadata
         )
         documents.append(current_doc)
-    encoding = tiktoken.encoding_for_model(os.environ["AZURE_OPENAI_EMBEDDINGS_MODEL_VERSION"])
+    encoding = tiktoken.get_encoding("o200k_base")
 
     total_token: int = 0
 

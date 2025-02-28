@@ -7,7 +7,7 @@ from langchain_core.runnables import RunnableWithMessageHistory
 from assistants.Assistant import Assistant, AssistantCreate
 from assistants.AssistantsRepository import AssistantsRepository
 from assistants.ToolManager import ToolManager, ToolName
-from chat.azure_openai import chat_gpt_4o, chat_gpt_4, chat_gpt_4o_mini, whisper
+from chat.azure_openai import chat_gpt_4o, whisper, chat_models
 from message.MessageRepository import MessageRepository
 from message.SqlMessageHistory import build_agent_memory
 
@@ -105,8 +105,7 @@ class AssistantManager:
         """
         # Get the current conversation and build document memory
 
-        chat_models = {"4": chat_gpt_4, "4o": chat_gpt_4o, "4om": chat_gpt_4o_mini}
-        local_chat = chat_models.get(gpt_model_number, chat_gpt_4o_mini)
+        local_chat = chat_models.get(gpt_model_number, chat_gpt_4o)
 
         memory = build_agent_memory(self.message_repository, conversation_id)
 

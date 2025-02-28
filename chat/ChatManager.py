@@ -53,19 +53,45 @@ class ChatManager:
 
         return self.do_rag(rag_retriever, memory, command)
 
-    def focus(self, command: str, conversation_id: str):
+    def do_focus(self, memory: SqlMessageHistory, command: str, cur_conversation: ConversationCreate,
+                 document: DocumentCreate):
         # Get the current conversation and build document memory
-        cur_conversation: ConversationCreate = self.conversation_repository.get_conversation_by_id(int(conversation_id))
-        memory = build_agent_memory(self.message_repository, conversation_id)
 
-        # Determine the appropriate retriever based on the perimeter or conversation PDF ID
-        if cur_conversation.pdf_id is not None and cur_conversation.pdf_id != 0:
-            document: DocumentCreate = self.document_manager.get_by_id(cur_conversation.pdf_id)
-            if document.document_type != DocumentType.TEMPLATE:
-                rag_retriever = CustomAzurePGVectorRetriever(QueryType.DOCUMENT, str(cur_conversation.pdf_id))
-                return self.do_rag(rag_retriever, memory, command)
+        tool_manager = ToolManager()
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    """
+                    Please answer the user on the following questions using the provided focus only file.
 
-        raise HTTPException(status_code=400, detail="You need to set a document search perimeter")
+                    The document id is : {document_id}
+
+                    """,
+                ),
+                ("placeholder", "{messages}"),
+                ("placeholder", "{agent_scratchpad}"),
+            ]
+        ).partial(document_id=cur_conversation.pdf_id)
+        memory = build_agent_memory(self.message_repository, cur_conversation.id)
+        focus_doc_tools = tool_manager.get_tools([ToolName.FOCUS_ONLY])
+        agent = create_openai_tools_agent(llm=chat_gpt_4o, tools=focus_doc_tools, prompt=prompt)
+        agent_executor = AgentExecutor(agent=agent, tools=focus_doc_tools, verbose=True)
+
+        conversational_agent_executor = RunnableWithMessageHistory(
+            agent_executor,
+            lambda session_id: memory,
+            input_messages_key="messages",
+            output_messages_key="output",
+        )
+
+        result = conversational_agent_executor.invoke(
+            {"messages": [HumanMessage(command)]},
+            {"configurable": {"session_id": "unused"}},
+        )
+        result["answer"] = result["output"]
+        return result
+        # Return response with results and possibly source metadata
 
     def do_template(self,
                     memory: SqlMessageHistory,

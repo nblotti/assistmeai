@@ -4,7 +4,7 @@ from typing import Optional
 
 import pytz
 from pydantic import BaseModel
-from sqlalchemy import Column, Integer, String, Enum, LargeBinary, Date
+from sqlalchemy import Column, Integer, String, Enum, LargeBinary, Date, Boolean
 from sqlalchemy.orm import declarative_base, deferred
 
 
@@ -52,6 +52,7 @@ class Document(Base):
     summary_status = Column(Enum(Jobstatus), nullable=True, default=Jobstatus.NONE)
     document_type = Column(Enum(DocumentType), nullable=True, default=DocumentType.DOCUMENT)
     document_status = Column(Enum(DocumentStatus), nullable=True, default=DocumentStatus.REQUESTED)
+    focus_only = Column(Boolean, nullable=False, default=False)
 
 
 class DocumentCreate(BaseModel):
@@ -65,6 +66,7 @@ class DocumentCreate(BaseModel):
     summary_status: Optional[Jobstatus] = Jobstatus.NONE
     document_type: Optional[DocumentType] = DocumentType.DOCUMENT
     document_status: Optional[DocumentStatus] = DocumentStatus.REQUESTED
+    focus_only: Optional[bool] = False
 
     class Config:
         use_enum_values = True  # This will use enum values when serializing/deserializing
