@@ -7,18 +7,13 @@ from fastapi.responses import StreamingResponse
 from langchain_core.documents import Document
 from pydantic import BaseModel
 
-from ProviderManager import document_manager_provider, shared_group_user_dao_provider, \
-    share_group_document_dao_provider, user_manager_provider
-from document.Document import DocumentType, DocumentCreate, SharedDocumentCreate, CategoryDocumentCreate, \
+from ProviderManager import document_manager_provider, user_manager_provider
+from document.Document import DocumentType, DocumentCreate, CategoryDocumentCreate, \
     DocumentStatus
 from document.DocumentManager import DocumentManager
 from embeddings.CustomAzurePGVectorRetriever import CustomAzurePGVectorRetriever
 from embeddings.QueryType import QueryType
 from rights import UserManager
-from sharing.SharedGroupDocument import SharedGroupDocumentCreate
-from sharing.SharedGroupDocumentRepository import SharedGroupDocumentRepository
-from sharing.SharedGroupUser import SharedGroupUserCreate
-from sharing.SharedGroupUserRepository import SharedGroupUserRepository
 
 router_file = APIRouter(
     prefix="/document",
@@ -28,8 +23,6 @@ router_file = APIRouter(
 
 document_manager_dep = Annotated[DocumentManager, Depends(document_manager_provider)]
 user_manager_dep = Annotated[UserManager, Depends(user_manager_provider)]
-shared_group_user_dep = Annotated[SharedGroupUserRepository, Depends(shared_group_user_dao_provider)]
-share_group_document_dep = Annotated[SharedGroupDocumentRepository, Depends(share_group_document_dao_provider)]
 
 
 @router_file.post("/")
@@ -63,32 +56,6 @@ async def list_documents(
     documents = document_manager.list_documents_by_type(user, document_type=document_type)
     if not documents:
         return []
-    return documents
-
-
-@router_file.get("/shared/{user}")
-async def list_documents(
-        user: str,
-        document_manager: document_manager_dep,
-        shared_group_user_repository: shared_group_user_dep,
-        shared_group_document_repository: share_group_document_dep
-
-):
-    shared_document_groups: List[SharedGroupDocumentCreate] = []
-    documents: List[SharedDocumentCreate] = []
-
-    user_groups: List[SharedGroupUserCreate] = shared_group_user_repository.list_by_user_id(user)
-
-    for user_group in user_groups:
-        shared_document_group: List[SharedGroupDocumentCreate] = shared_group_document_repository.list_by_group_id(
-            int(user_group.group_id))
-        shared_document_groups.extend(shared_document_group)
-
-    for document_group in shared_document_groups:
-        document = document_manager.get_by_id(int(document_group.document_id))
-        shared_document = SharedDocumentCreate(**document.model_dump())
-        shared_document.shared_group_id = document_group.group_id
-        documents.append(shared_document)
     return documents
 
 

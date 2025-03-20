@@ -1,18 +1,16 @@
 import json
 import os
 
-from dotenv import load_dotenv
 from langchain_postgres.vectorstores import PGVector
 
-from embeddings.azure_openai import embeddings
-
+from embeddings.azure_openai import get_embeddings_and_set_env
 
 # We use postgresql rather than postgres in the conn string since LangChain uses sqlalchemy under the hood
 # You can remove the ?sslmode=require if you have a local PostgreSQL instance running without SSL
 
 vector_store = PGVector.from_existing_index(
     collection_name=os.getenv("POSTGRES_INDEX_NAME"),
-    embedding=embeddings,
+    embedding=get_embeddings_and_set_env(),
     connection=os.getenv("PGVECTOR_CONNECTION_STRING"),
     use_jsonb=True,
 )

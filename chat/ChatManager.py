@@ -8,7 +8,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableWithMessageHistory, RunnablePassthrough
 
 from assistants.ToolManager import ToolManager, ToolName
-from chat.azure_openai import chat_gpt_4o, whisper
+from chat.azure_openai import get_model_and_set_env
 from conversation.Conversation import ConversationCreate
 from conversation.ConversationRepository import ConversationRepository
 from document.Document import DocumentCreate, DocumentType
@@ -53,46 +53,6 @@ class ChatManager:
 
         return self.do_rag(rag_retriever, memory, command)
 
-    def do_focus(self, memory: SqlMessageHistory, command: str, cur_conversation: ConversationCreate,
-                 document: DocumentCreate):
-        # Get the current conversation and build document memory
-
-        tool_manager = ToolManager()
-        prompt = ChatPromptTemplate.from_messages(
-            [
-                (
-                    "system",
-                    """
-                    Please answer the user on the following questions using the provided focus only file.
-
-                    The document id is : {document_id}
-
-                    """,
-                ),
-                ("placeholder", "{messages}"),
-                ("placeholder", "{agent_scratchpad}"),
-            ]
-        ).partial(document_id=cur_conversation.pdf_id)
-        memory = build_agent_memory(self.message_repository, cur_conversation.id)
-        focus_doc_tools = tool_manager.get_tools([ToolName.FOCUS_ONLY])
-        agent = create_openai_tools_agent(llm=chat_gpt_4o, tools=focus_doc_tools, prompt=prompt)
-        agent_executor = AgentExecutor(agent=agent, tools=focus_doc_tools, verbose=True)
-
-        conversational_agent_executor = RunnableWithMessageHistory(
-            agent_executor,
-            lambda session_id: memory,
-            input_messages_key="messages",
-            output_messages_key="output",
-        )
-
-        result = conversational_agent_executor.invoke(
-            {"messages": [HumanMessage(command)]},
-            {"configurable": {"session_id": "unused"}},
-        )
-        result["answer"] = result["output"]
-        return result
-        # Return response with results and possibly source metadata
-
     def do_template(self,
                     memory: SqlMessageHistory,
                     command: str,
@@ -128,6 +88,7 @@ class ChatManager:
         ).partial(document_id=document.id)
         memory = build_agent_memory(self.message_repository, conversation.id)
         template_doc_tools = tool_manager.get_tools([ToolName.TEMPLATE])
+        chat_gpt_4o = get_model_and_set_env("4o")
         agent = create_openai_tools_agent(llm=chat_gpt_4o, tools=template_doc_tools, prompt=prompt)
         agent_executor = AgentExecutor(agent=agent, tools=template_doc_tools, verbose=True)
 
@@ -164,6 +125,7 @@ class ChatManager:
                 ("human", "{input}"),
             ]
         )
+        chat_gpt_4o = get_model_and_set_env("4o")
         rag_chain_from_docs = (
                 {
                     "input": lambda x: x["input"],  # input query
@@ -205,6 +167,7 @@ class ChatManager:
 
     def execute_voice_command(self, conversation_id, perimeter, tmp_path):
         audio_blob = Blob(path=tmp_path)
+        whisper = get_model_and_set_env("whisper")
         documents = whisper.lazy_parse(blob=audio_blob)
 
         content = ""

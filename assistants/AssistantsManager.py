@@ -7,7 +7,7 @@ from langchain_core.runnables import RunnableWithMessageHistory
 from assistants.Assistant import Assistant, AssistantCreate
 from assistants.AssistantsRepository import AssistantsRepository
 from assistants.ToolManager import ToolManager, ToolName
-from chat.azure_openai import chat_gpt_4o, whisper, chat_models
+from chat.azure_openai import get_model_and_set_env
 from message.MessageRepository import MessageRepository
 from message.SqlMessageHistory import build_agent_memory
 
@@ -74,6 +74,7 @@ class AssistantManager:
 
     def execute_voice_command(self, conversation_id: str, tmp_path: str):
         audio_blob = Blob(path=tmp_path)
+        whisper = get_model_and_set_env("whisper")
         documents = whisper.lazy_parse(blob=audio_blob)
 
         content = ""
@@ -105,7 +106,7 @@ class AssistantManager:
         """
         # Get the current conversation and build document memory
 
-        local_chat = chat_models.get(gpt_model_number, chat_gpt_4o)
+        local_chat = get_model_and_set_env(gpt_model_number)
 
         memory = build_agent_memory(self.message_repository, conversation_id)
 

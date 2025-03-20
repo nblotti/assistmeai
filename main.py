@@ -32,9 +32,7 @@ from conversation.ConversationController import router_conversation
 from document.DocumentsController import router_file
 from message.MessageController import router_message
 from rights.UserController import router_user
-from sharing.SharedGroupController import router_group
-from sharing.SharedGroupDocumentController import router_shared_group_document
-from sharing.SharedGroupUserController import router_shared_group_user
+
 from job.JobController import router_job
 
 config.set_verbose(False)
@@ -150,10 +148,7 @@ app.include_router(router_conversation)
 app.include_router(router_message)
 app.include_router(router_user)
 app.include_router(router_assistant)
-app.include_router(router_group)
-app.include_router(router_shared_group_user)
 
-app.include_router(router_shared_group_document)
 
 app.include_router(router_assistant_document)
 

@@ -5,6 +5,7 @@ from typing import Optional
 import pytz
 from pydantic import BaseModel, Field
 from sqlalchemy import Column, Enum, Integer, String, Date
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
@@ -22,7 +23,6 @@ class JobType(str, enum.Enum):
     SUMMARY = "SUMMARY"
     SCRAP = "SCRAP"
     LONG_EMBEDDINGS = "LONG_EMBEDDINGS"
-    SHARE = "SHARE"
 
 
 class Job(Base):
@@ -36,6 +36,7 @@ class Job(Base):
     status = Column(Enum(JobStatus), nullable=True, default=JobStatus.REQUESTED)
     created_on = Column(Date, nullable=True, default=datetime.now(pytz.utc))
     last_update = Column(Date, nullable=True, default=datetime.now(pytz.utc))
+    payload = Column(postgresql.JSONB, nullable=True)
 
 
 class JobBase(BaseModel):
@@ -50,6 +51,7 @@ class JobCreate(JobBase):
     owner: str
     status: Optional[JobStatus] = JobStatus.IN_PROGRESS
     job_type: Optional[JobType] = JobType.SUMMARY
+    payload: Optional[dict]
 
     class Config:
         use_enum_values = True  # This will use enum values when serializing/deserializing
@@ -70,3 +72,4 @@ class JobRead(JobBase):
     status: Optional[JobStatus] = JobStatus.REQUESTED
     created_on: str
     last_update: str
+    payload: Optional[dict]

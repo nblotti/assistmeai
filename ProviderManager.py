@@ -15,26 +15,10 @@ from job.JobRepository import JobRepository
 from message.MessageRepository import MessageRepository
 from rights.UserManager import UserManager
 from rights.UserRepository import UserRepository
-from sharing.SharedGroupDocumentRepository import SharedGroupDocumentRepository
-from sharing.SharedGroupRepository import SharedGroupRepository
-from sharing.SharedGroupUserRepository import SharedGroupUserRepository
 
 
 def user_dao_provider(session: Session = Depends(get_db)) -> UserRepository:
     return UserRepository(session)
-
-
-def shared_group_user_dao_provider(session: Session = Depends(get_db)) -> SharedGroupUserRepository:
-    return SharedGroupUserRepository(session)
-
-
-def shared_group_dao_provider(session: Session = Depends(get_db)) -> SharedGroupRepository:
-    return SharedGroupRepository(session)
-
-
-def share_group_document_dao_provider(session: Session = Depends(get_db)) -> SharedGroupDocumentRepository:
-    return SharedGroupDocumentRepository(session)
-
 
 def category_dao_provider(session: Session = Depends(get_db)) -> DocumentCategoryRepository:
     return DocumentCategoryRepository(session)

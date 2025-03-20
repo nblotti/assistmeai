@@ -7,7 +7,8 @@ CREATE TABLE jobs
     owner              VARCHAR(255) NOT NULL,
     status             VARCHAR(255) NOT NULL DEFAULT 'REQUESTED',
     created_on         TIMESTAMP    NOT NULL DEFAULT TO_TIMESTAMP(TO_CHAR(CURRENT_TIMESTAMP, 'DD.MM.YYYY'), 'DD.MM.YYYY'),
-    last_update        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+    last_update        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    payload JSONB NULL
 );
 
 

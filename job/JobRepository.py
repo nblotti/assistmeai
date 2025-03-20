@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 from typing import Sequence
 
@@ -52,5 +53,7 @@ class JobRepository(BaseAlchemyRepository):
             owner=job.owner,
             status=job.status,
             created_on=job.created_on.strftime("%d.%m.%Y"),
-            last_update=job.last_update.strftime("%d.%m.%Y")
+            last_update=job.last_update.strftime("%d.%m.%Y"),
+
+            payload=json.loads(job.payload) if job.payload else {}
         )
