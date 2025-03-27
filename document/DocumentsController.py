@@ -34,7 +34,7 @@ async def upload_file(
 ):
     contents = await file.read()
 
-    return await document_manager.upload_file(owner, file.filename, contents)
+    return await document_manager.upload_file(owner, file.filename, contents, document_type=document_type)
 
 
 @router_file.delete("/{blob_id}/")

@@ -141,6 +141,7 @@ app.add_middleware(
 app.add_middleware(NoCacheMiddleware)
 app.add_middleware(BearerTokenMiddleware)
 
+
 # Register routers
 app.include_router(chat_ai)
 app.include_router(router_file)

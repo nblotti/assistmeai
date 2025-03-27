@@ -1,6 +1,6 @@
 from typing import Annotated, List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from ProviderManager import job_repository_provider
 from job.Job import JobRead, JobType, JobStatus, JobCreate, JobUpdate
@@ -16,8 +16,9 @@ job_dao_provider_dep = Annotated[JobRepository, Depends(job_repository_provider)
 
 
 @router_job.get("/")
-async def create(type: JobType, job_repository: job_dao_provider_dep, status: JobStatus = JobStatus.REQUESTED) \
-        -> List[JobRead]:
+async def list(job_repository: job_dao_provider_dep,
+               type: JobType = Query(...),
+               status: JobStatus = Query(default=JobStatus.REQUESTED)) -> List[JobRead]:
     try:
         return job_repository.list(type, status)
 

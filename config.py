@@ -9,6 +9,20 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
+
+class ExcludePathFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        excluded_path = "GET /job/"
+        # If this substring is found, return False (exclude from logs)
+        if excluded_path in record.getMessage():
+            return False
+        return True
+
+access_logger = logging.getLogger("uvicorn.access")
+# Add our custom filter to exclude /job/ paths
+access_logger.addFilter(ExcludePathFilter())
+
+
 Base = declarative_base()
 SessionLocal = None
 engine = None

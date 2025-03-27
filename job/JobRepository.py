@@ -15,7 +15,9 @@ class JobRepository(BaseAlchemyRepository):
         new_job = Job(
             source=job.source,
             owner=job.owner,
-            job_type=job.job_type
+            job_type=job.job_type,
+
+            payload=json.dumps(job.payload if job.payload is not None else {})
 
         )
         self.db.add(new_job)

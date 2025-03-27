@@ -51,7 +51,7 @@ class JobCreate(JobBase):
     owner: str
     status: Optional[JobStatus] = JobStatus.IN_PROGRESS
     job_type: Optional[JobType] = JobType.SUMMARY
-    payload: Optional[dict]
+    payload: Optional[dict] = None
 
     class Config:
         use_enum_values = True  # This will use enum values when serializing/deserializing
